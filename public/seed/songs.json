@@ -1,0 +1,86 @@
+[
+  {
+    "song": {
+      "id": "seed-01",
+      "spotifyId": "4cOdK2wGLETKBW3PvgPWqT",
+      "title": "Propuesta Indecente",
+      "artist": "Romeo Santos",
+      "albumArt": "",
+      "durationMs": 235000,
+      "addedAt": "2026-01-01T00:00:00.000Z"
+    },
+    "breakdown": {
+      "songId": "seed-01",
+      "markers": [
+        { "id": "s01-m01", "timeMs": 0, "type": "section", "label": "intro" },
+        { "id": "s01-m02", "timeMs": 15000, "type": "section", "label": "verse" },
+        { "id": "s01-m03", "timeMs": 30000, "type": "break" },
+        { "id": "s01-m04", "timeMs": 45000, "type": "section", "label": "chorus" },
+        { "id": "s01-m05", "timeMs": 60000, "type": "accent" },
+        { "id": "s01-m06", "timeMs": 75000, "type": "section", "label": "verse" },
+        { "id": "s01-m07", "timeMs": 105000, "type": "break" },
+        { "id": "s01-m08", "timeMs": 120000, "type": "section", "label": "chorus" },
+        { "id": "s01-m09", "timeMs": 150000, "type": "rhythmChange" },
+        { "id": "s01-m10", "timeMs": 165000, "type": "section", "label": "bridge" },
+        { "id": "s01-m11", "timeMs": 190000, "type": "section", "label": "chorus" },
+        { "id": "s01-m12", "timeMs": 220000, "type": "section", "label": "outro" }
+      ],
+      "updatedAt": "2026-01-01T00:00:00.000Z"
+    }
+  },
+  {
+    "song": {
+      "id": "seed-02",
+      "spotifyId": "1BxfuPKGuaTgP7aM0Bbdrad",
+      "title": "Obsesion",
+      "artist": "Aventura",
+      "albumArt": "",
+      "durationMs": 224000,
+      "addedAt": "2026-01-01T00:00:00.000Z"
+    },
+    "breakdown": {
+      "songId": "seed-02",
+      "markers": [
+        { "id": "s02-m01", "timeMs": 0, "type": "section", "label": "intro" },
+        { "id": "s02-m02", "timeMs": 18000, "type": "section", "label": "verse" },
+        { "id": "s02-m03", "timeMs": 42000, "type": "break" },
+        { "id": "s02-m04", "timeMs": 55000, "type": "section", "label": "chorus" },
+        { "id": "s02-m05", "timeMs": 80000, "type": "accent" },
+        { "id": "s02-m06", "timeMs": 90000, "type": "section", "label": "verse" },
+        { "id": "s02-m07", "timeMs": 130000, "type": "break" },
+        { "id": "s02-m08", "timeMs": 145000, "type": "section", "label": "chorus" },
+        { "id": "s02-m09", "timeMs": 175000, "type": "section", "label": "bridge" },
+        { "id": "s02-m10", "timeMs": 200000, "type": "section", "label": "outro" }
+      ],
+      "updatedAt": "2026-01-01T00:00:00.000Z"
+    }
+  },
+  {
+    "song": {
+      "id": "seed-03",
+      "spotifyId": "6habFhsOp2NvshLv26DqMb",
+      "title": "Darte Un Beso",
+      "artist": "Prince Royce",
+      "albumArt": "",
+      "durationMs": 207000,
+      "addedAt": "2026-01-01T00:00:00.000Z"
+    },
+    "breakdown": {
+      "songId": "seed-03",
+      "markers": [
+        { "id": "s03-m01", "timeMs": 0, "type": "section", "label": "intro" },
+        { "id": "s03-m02", "timeMs": 12000, "type": "section", "label": "verse" },
+        { "id": "s03-m03", "timeMs": 35000, "type": "break" },
+        { "id": "s03-m04", "timeMs": 48000, "type": "section", "label": "chorus" },
+        { "id": "s03-m05", "timeMs": 72000, "type": "accent" },
+        { "id": "s03-m06", "timeMs": 85000, "type": "section", "label": "verse" },
+        { "id": "s03-m07", "timeMs": 115000, "type": "break" },
+        { "id": "s03-m08", "timeMs": 125000, "type": "section", "label": "chorus" },
+        { "id": "s03-m09", "timeMs": 155000, "type": "rhythmChange" },
+        { "id": "s03-m10", "timeMs": 170000, "type": "section", "label": "bridge" },
+        { "id": "s03-m11", "timeMs": 190000, "type": "section", "label": "outro" }
+      ],
+      "updatedAt": "2026-01-01T00:00:00.000Z"
+    }
+  }
+]
