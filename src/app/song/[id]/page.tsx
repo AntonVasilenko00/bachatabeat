@@ -1,13 +1,12 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Image from "next/image";
 import { v4 as uuidv4 } from "uuid";
 import Header from "@/components/Header";
 import SpotifyPlayer from "@/components/SpotifyPlayer";
 import Timeline from "@/components/Timeline";
-import MarkerEditor from "@/components/MarkerEditor";
 import {
   getSongById,
   getBreakdown,
@@ -17,8 +16,14 @@ import {
 } from "@/lib/storage";
 import { exportSong } from "@/lib/export";
 import { formatTime } from "@/lib/spotify";
-import type { Song, Marker, Breakdown, MarkerType } from "@/types";
-import { MARKER_CONFIG } from "@/types";
+import {
+  nearestBeat,
+  getCountForBeat,
+  beatToMs,
+  msToBeat,
+} from "@/lib/beats";
+import type { Song, Marker, Breakdown, CountChange, MarkerType } from "@/types";
+import { MARKER_CONFIG, SECTION_LABELS } from "@/types";
 
 export default function SongPage() {
   const params = useParams();
@@ -26,13 +31,23 @@ export default function SongPage() {
   const songId = params.id as string;
 
   const [song, setSong] = useState<Song | null>(null);
+  const [bpm, setBpm] = useState(0);
+  const [firstBeatMs, setFirstBeatMs] = useState(0);
+  const [countChanges, setCountChanges] = useState<CountChange[]>([]);
   const [markers, setMarkers] = useState<Marker[]>([]);
-  const [editorOpen, setEditorOpen] = useState(false);
-  const [editorTimeMs, setEditorTimeMs] = useState(0);
   const [currentPositionMs, setCurrentPositionMs] = useState(0);
   const [playerDurationMs, setPlayerDurationMs] = useState(0);
 
-  // Load song and breakdown from localStorage
+  // UI state
+  const [showCountPicker, setShowCountPicker] = useState(false);
+  const [showSectionPicker, setShowSectionPicker] = useState(false);
+  const [bpmInput, setBpmInput] = useState("");
+
+  // Tap tempo state
+  const tapTimesRef = useRef<number[]>([]);
+  const tapTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Load song and breakdown
   useEffect(() => {
     async function load() {
       await loadSeedIfNeeded();
@@ -43,21 +58,30 @@ export default function SongPage() {
       }
       setSong(s);
       const bd = getBreakdown(s.id);
-      if (bd) setMarkers(bd.markers);
+      if (bd) {
+        setBpm(bd.bpm || 0);
+        setFirstBeatMs(bd.firstBeatMs || 0);
+        setCountChanges(bd.countChanges || []);
+        setMarkers(bd.markers || []);
+        setBpmInput(bd.bpm ? String(bd.bpm) : "");
+      }
     }
     load();
   }, [songId, router]);
 
-  // Save breakdown whenever markers change
+  // Save breakdown whenever data changes
   useEffect(() => {
     if (!song) return;
     const bd: Breakdown = {
       songId: song.id,
+      bpm,
+      firstBeatMs,
+      countChanges,
       markers,
       updatedAt: new Date().toISOString(),
     };
     saveBreakdown(bd);
-  }, [markers, song]);
+  }, [bpm, firstBeatMs, countChanges, markers, song]);
 
   const handleTimeUpdate = useCallback((ms: number) => {
     setCurrentPositionMs(ms);
@@ -67,88 +91,177 @@ export default function SongPage() {
     setPlayerDurationMs(ms);
   }, []);
 
-  // Open marker editor at a specific time
-  const openEditor = useCallback((ms: number) => {
-    setEditorTimeMs(ms);
-    setEditorOpen(true);
+  // BPM handling
+  const handleBpmChange = useCallback((value: string) => {
+    setBpmInput(value);
+    const num = parseFloat(value);
+    if (!isNaN(num) && num > 0 && num < 300) {
+      setBpm(num);
+    }
   }, []);
 
-  // Add marker
-  const addMarker = useCallback(
-    (type: MarkerType, label?: string) => {
+  // Tap tempo
+  const handleTap = useCallback(() => {
+    const now = Date.now();
+
+    // Reset if last tap was > 2 seconds ago
+    if (tapTimeoutRef.current) clearTimeout(tapTimeoutRef.current);
+    tapTimeoutRef.current = setTimeout(() => {
+      tapTimesRef.current = [];
+    }, 2000);
+
+    tapTimesRef.current.push(now);
+
+    // Need at least 2 taps
+    if (tapTimesRef.current.length >= 2) {
+      const taps = tapTimesRef.current;
+      // Keep last 8 taps max
+      if (taps.length > 8) taps.shift();
+
+      const intervals: number[] = [];
+      for (let i = 1; i < taps.length; i++) {
+        intervals.push(taps[i] - taps[i - 1]);
+      }
+      const avgInterval =
+        intervals.reduce((a, b) => a + b, 0) / intervals.length;
+      const detectedBpm = Math.round(60000 / avgInterval);
+      if (detectedBpm > 30 && detectedBpm < 300) {
+        setBpm(detectedBpm);
+        setBpmInput(String(detectedBpm));
+      }
+    }
+  }, []);
+
+  // Set first beat at current position
+  const handleSetFirstBeat = useCallback(() => {
+    setFirstBeatMs(currentPositionMs);
+  }, [currentPositionMs]);
+
+  // Current beat info
+  const durationMs = playerDurationMs || song?.durationMs || 0;
+  const currentBeat = useMemo(() => {
+    if (bpm <= 0 || currentPositionMs < firstBeatMs) return -1;
+    return msToBeat(currentPositionMs, bpm, firstBeatMs);
+  }, [currentPositionMs, bpm, firstBeatMs]);
+
+  const currentCount = useMemo(() => {
+    if (currentBeat < 0) return 0;
+    return getCountForBeat(currentBeat, countChanges);
+  }, [currentBeat, countChanges]);
+
+  // Add count change at current beat
+  const addCountChange = useCallback(
+    (resetTo: number) => {
+      const beat = nearestBeat(currentPositionMs, bpm, firstBeatMs);
+      if (beat < 0 || bpm <= 0) return;
+
+      // Don't add duplicate at same beat
+      const existing = countChanges.find((cc) => cc.beatIndex === beat);
+      if (existing) {
+        setCountChanges((prev) =>
+          prev
+            .map((cc) => (cc.id === existing.id ? { ...cc, resetTo } : cc))
+            .sort((a, b) => a.beatIndex - b.beatIndex)
+        );
+      } else {
+        const cc: CountChange = {
+          id: uuidv4(),
+          beatIndex: beat,
+          resetTo,
+        };
+        setCountChanges((prev) =>
+          [...prev, cc].sort((a, b) => a.beatIndex - b.beatIndex)
+        );
+      }
+      setShowCountPicker(false);
+    },
+    [currentPositionMs, bpm, firstBeatMs, countChanges]
+  );
+
+  // Add section marker at current beat
+  const addSection = useCallback(
+    (label: string) => {
+      const beat = nearestBeat(currentPositionMs, bpm, firstBeatMs);
+      if (beat < 0 || bpm <= 0) return;
       const marker: Marker = {
         id: uuidv4(),
-        timeMs: editorTimeMs,
-        type,
+        beatIndex: beat,
+        type: "section",
         label,
       };
       setMarkers((prev) =>
-        [...prev, marker].sort((a, b) => a.timeMs - b.timeMs)
+        [...prev, marker].sort((a, b) => a.beatIndex - b.beatIndex)
       );
-      setEditorOpen(false);
+      setShowSectionPicker(false);
     },
-    [editorTimeMs]
+    [currentPositionMs, bpm, firstBeatMs]
   );
 
-  // Delete marker
-  const deleteMarker = useCallback((markerId: string) => {
-    setMarkers((prev) => prev.filter((m) => m.id !== markerId));
+  // Add break/accent at current beat
+  const addMarkerQuick = useCallback(
+    (type: MarkerType) => {
+      const beat = nearestBeat(currentPositionMs, bpm, firstBeatMs);
+      if (beat < 0 || bpm <= 0) return;
+      const marker: Marker = {
+        id: uuidv4(),
+        beatIndex: beat,
+        type,
+      };
+      setMarkers((prev) =>
+        [...prev, marker].sort((a, b) => a.beatIndex - b.beatIndex)
+      );
+    },
+    [currentPositionMs, bpm, firstBeatMs]
+  );
+
+  // Delete handlers
+  const deleteCountChange = useCallback((id: string) => {
+    setCountChanges((prev) => prev.filter((cc) => cc.id !== id));
   }, []);
 
-  // Keyboard shortcuts
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      // Don't capture when typing in inputs
-      if (
-        e.target instanceof HTMLInputElement ||
-        e.target instanceof HTMLTextAreaElement
-      )
-        return;
-
-      // Number keys 1-5: quick-add marker at current position
-      const shortcutTypes: Record<string, MarkerType> = {
-        "1": "count",
-        "2": "break",
-        "3": "accent",
-        "4": "rhythmChange",
-        "5": "section",
-      };
-
-      if (shortcutTypes[e.key] && !editorOpen) {
-        const type = shortcutTypes[e.key];
-        if (type === "section" || type === "count") {
-          // Open editor for types that need labels
-          openEditor(currentPositionMs);
-        } else {
-          // Quick-add without label
-          const marker: Marker = {
-            id: uuidv4(),
-            timeMs: currentPositionMs,
-            type,
-          };
-          setMarkers((prev) =>
-            [...prev, marker].sort((a, b) => a.timeMs - b.timeMs)
-          );
-        }
-      }
-
-      // Escape to close editor
-      if (e.key === "Escape" && editorOpen) {
-        setEditorOpen(false);
-      }
-    };
-
-    window.addEventListener("keydown", handler);
-    return () => window.removeEventListener("keydown", handler);
-  }, [editorOpen, currentPositionMs, openEditor]);
+  const deleteMarker = useCallback((id: string) => {
+    setMarkers((prev) => prev.filter((m) => m.id !== id));
+  }, []);
 
   const handleDeleteSong = () => {
     if (!song) return;
-    if (window.confirm(`Delete "${song.title}" and all its markers?`)) {
+    if (window.confirm(`Delete "${song.title}"?`)) {
       deleteSong(song.id);
       router.push("/catalog");
     }
   };
+
+  // Close pickers on Escape
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setShowCountPicker(false);
+        setShowSectionPicker(false);
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, []);
+
+  // Close pickers when clicking outside
+  useEffect(() => {
+    if (!showCountPicker && !showSectionPicker) return;
+    const handler = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (!target.closest("[data-picker]")) {
+        setShowCountPicker(false);
+        setShowSectionPicker(false);
+      }
+    };
+    // Delay to avoid closing immediately
+    const timer = setTimeout(() => {
+      document.addEventListener("click", handler);
+    }, 10);
+    return () => {
+      clearTimeout(timer);
+      document.removeEventListener("click", handler);
+    };
+  }, [showCountPicker, showSectionPicker]);
 
   if (!song) {
     return (
@@ -161,58 +274,50 @@ export default function SongPage() {
     );
   }
 
-  const durationMs = playerDurationMs || song.durationMs;
-
   return (
     <div className="min-h-screen">
       <Header />
 
       <main className="mx-auto max-w-5xl px-4 py-8">
         {/* Song info header */}
-        <div className="mb-8 flex items-start gap-4">
+        <div className="mb-6 flex items-center gap-4">
           {song.albumArt ? (
             <Image
               src={song.albumArt}
               alt={song.title}
-              width={96}
-              height={96}
-              className="h-24 w-24 shrink-0 rounded-xl object-cover shadow-lg"
+              width={64}
+              height={64}
+              className="h-16 w-16 shrink-0 rounded-xl object-cover shadow-lg"
             />
           ) : (
-            <div className="flex h-24 w-24 shrink-0 items-center justify-center rounded-xl bg-zinc-800 text-3xl">
+            <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-xl bg-zinc-800 text-2xl">
               🎵
             </div>
           )}
-
           <div className="min-w-0 flex-1">
-            <h1 className="mb-1 text-2xl font-bold text-white truncate">
+            <h1 className="text-xl font-bold text-white truncate">
               {song.title}
             </h1>
-            <p className="text-zinc-400">{song.artist}</p>
-            <p className="mt-1 text-xs text-zinc-500">
-              {formatTime(song.durationMs)} &middot; {markers.length} marker
-              {markers.length !== 1 ? "s" : ""}
-            </p>
+            <p className="text-sm text-zinc-400">{song.artist}</p>
           </div>
-
           <div className="flex shrink-0 gap-2">
             <button
               onClick={() => exportSong(song.id)}
-              className="rounded-lg border border-zinc-700 px-3 py-2 text-xs text-zinc-300 transition-colors hover:bg-zinc-800 hover:text-white"
+              className="rounded-lg border border-zinc-700 px-3 py-1.5 text-xs text-zinc-400 hover:bg-zinc-800 hover:text-white transition-colors"
             >
-              Export JSON
+              Export
             </button>
             <button
               onClick={handleDeleteSong}
-              className="rounded-lg border border-red-900/50 px-3 py-2 text-xs text-red-400 transition-colors hover:bg-red-900/20 hover:text-red-300"
+              className="rounded-lg border border-red-900/50 px-3 py-1.5 text-xs text-red-400/70 hover:bg-red-900/20 hover:text-red-300 transition-colors"
             >
               Delete
             </button>
           </div>
         </div>
 
-        {/* Player + Timeline */}
-        <div className="mb-8 rounded-2xl border border-zinc-800 bg-zinc-900/50 p-6">
+        {/* Player + controls */}
+        <div className="rounded-2xl border border-zinc-800 bg-zinc-900/50 p-5">
           <SpotifyPlayer
             spotifyUri={`spotify:track:${song.spotifyId}`}
             onTimeUpdate={handleTimeUpdate}
@@ -220,19 +325,74 @@ export default function SongPage() {
           >
             {(controls) => (
               <div className="space-y-4">
+                {/* BPM config row */}
+                <div className="flex items-center gap-2">
+                  <div className="flex items-center rounded-lg border border-zinc-700 bg-zinc-800 overflow-hidden">
+                    <input
+                      type="number"
+                      value={bpmInput}
+                      onChange={(e) => handleBpmChange(e.target.value)}
+                      placeholder="BPM"
+                      min={30}
+                      max={250}
+                      className="w-16 bg-transparent px-2.5 py-1.5 text-sm text-white placeholder-zinc-500 outline-none text-center [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                    />
+                    <span className="pr-2 text-[10px] text-zinc-500">BPM</span>
+                  </div>
+
+                  <button
+                    onClick={handleTap}
+                    className="rounded-lg border border-zinc-700 px-3 py-1.5 text-xs text-zinc-300 hover:bg-zinc-700 hover:text-white transition-colors active:bg-zinc-600"
+                  >
+                    Tap
+                  </button>
+
+                  <button
+                    onClick={handleSetFirstBeat}
+                    className="rounded-lg border border-zinc-700 px-3 py-1.5 text-xs text-zinc-300 hover:bg-zinc-700 hover:text-white transition-colors"
+                  >
+                    Set 1
+                  </button>
+
+                  {firstBeatMs > 0 && (
+                    <span className="text-[10px] text-zinc-500 font-mono">
+                      1st @ {formatTime(firstBeatMs)}
+                    </span>
+                  )}
+
+                  <div className="flex-1" />
+
+                  {/* Current count display */}
+                  {bpm > 0 && currentBeat >= 0 && (
+                    <div className="flex items-center gap-1.5">
+                      {Array.from({ length: 8 }, (_, i) => i + 1).map(
+                        (num) => (
+                          <div
+                            key={num}
+                            className={`flex h-7 w-7 items-center justify-center rounded-md text-xs font-bold transition-all ${
+                              currentCount === num
+                                ? "bg-white text-black scale-110"
+                                : "bg-zinc-800 text-zinc-600"
+                            }`}
+                          >
+                            {num}
+                          </div>
+                        )
+                      )}
+                    </div>
+                  )}
+                </div>
+
                 {/* Play controls */}
-                <div className="flex items-center justify-center gap-4">
+                <div className="flex items-center justify-center gap-3">
                   <button
                     onClick={() =>
-                      controls.seek(
-                        Math.max(0, controls.positionMs - 5000)
-                      )
+                      controls.seek(Math.max(0, controls.positionMs - 5000))
                     }
-                    className="rounded-lg p-2 text-zinc-400 transition-colors hover:text-white hover:bg-zinc-800"
-                    title="Back 5s"
+                    className="rounded-lg p-2 text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors"
                   >
                     <svg
-                      className="h-5 w-5"
+                      className="h-4 w-4"
                       fill="none"
                       viewBox="0 0 24 24"
                       stroke="currentColor"
@@ -248,11 +408,11 @@ export default function SongPage() {
 
                   <button
                     onClick={controls.togglePlay}
-                    className="flex h-12 w-12 items-center justify-center rounded-full bg-white text-black transition-all hover:scale-105 hover:bg-zinc-200"
+                    className="flex h-10 w-10 items-center justify-center rounded-full bg-white text-black hover:scale-105 hover:bg-zinc-200 transition-all"
                   >
                     {controls.isPlaying ? (
                       <svg
-                        className="h-5 w-5"
+                        className="h-4 w-4"
                         fill="currentColor"
                         viewBox="0 0 24 24"
                       >
@@ -260,7 +420,7 @@ export default function SongPage() {
                       </svg>
                     ) : (
                       <svg
-                        className="h-5 w-5 ml-0.5"
+                        className="h-4 w-4 ml-0.5"
                         fill="currentColor"
                         viewBox="0 0 24 24"
                       >
@@ -272,17 +432,13 @@ export default function SongPage() {
                   <button
                     onClick={() =>
                       controls.seek(
-                        Math.min(
-                          controls.durationMs,
-                          controls.positionMs + 5000
-                        )
+                        Math.min(controls.durationMs, controls.positionMs + 5000)
                       )
                     }
-                    className="rounded-lg p-2 text-zinc-400 transition-colors hover:text-white hover:bg-zinc-800"
-                    title="Forward 5s"
+                    className="rounded-lg p-2 text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors"
                   >
                     <svg
-                      className="h-5 w-5"
+                      className="h-4 w-4"
                       fill="none"
                       viewBox="0 0 24 24"
                       stroke="currentColor"
@@ -301,117 +457,206 @@ export default function SongPage() {
                 <Timeline
                   durationMs={durationMs}
                   positionMs={controls.positionMs}
+                  bpm={bpm}
+                  firstBeatMs={firstBeatMs}
+                  countChanges={countChanges}
                   markers={markers}
                   onSeek={controls.seek}
-                  onClickTimeline={openEditor}
-                  isPlaying={controls.isPlaying}
                 />
 
-                {/* Quick-add button */}
-                <div className="flex justify-center">
-                  <button
-                    onClick={() => openEditor(controls.positionMs)}
-                    className="rounded-lg border border-zinc-700 px-4 py-2 text-xs text-zinc-300 transition-colors hover:bg-zinc-800 hover:text-white"
-                  >
-                    + Add marker at {formatTime(controls.positionMs)}
-                  </button>
-                </div>
+                {/* Action buttons */}
+                {bpm > 0 && (
+                  <div className="flex items-center justify-center gap-2">
+                    {/* Count change */}
+                    <div className="relative" data-picker>
+                      <button
+                        onClick={() => {
+                          setShowCountPicker(!showCountPicker);
+                          setShowSectionPicker(false);
+                        }}
+                        className="rounded-lg border border-zinc-700 px-3 py-1.5 text-xs text-zinc-300 hover:bg-zinc-700 hover:text-white transition-colors"
+                      >
+                        + Count Change
+                      </button>
+                      {showCountPicker && (
+                        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 flex gap-1 rounded-lg border border-zinc-700 bg-zinc-800 p-1.5 shadow-xl z-50">
+                          {Array.from({ length: 8 }, (_, i) => i + 1).map(
+                            (num) => (
+                              <button
+                                key={num}
+                                onClick={() => addCountChange(num)}
+                                className="flex h-8 w-8 items-center justify-center rounded-md text-sm font-bold text-zinc-300 hover:bg-white hover:text-black transition-colors"
+                              >
+                                {num}
+                              </button>
+                            )
+                          )}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Section */}
+                    <div className="relative" data-picker>
+                      <button
+                        onClick={() => {
+                          setShowSectionPicker(!showSectionPicker);
+                          setShowCountPicker(false);
+                        }}
+                        className="rounded-lg border border-zinc-700 px-3 py-1.5 text-xs text-zinc-300 hover:bg-zinc-700 hover:text-white transition-colors"
+                      >
+                        + Section
+                      </button>
+                      {showSectionPicker && (
+                        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 flex gap-1 rounded-lg border border-zinc-700 bg-zinc-800 p-1.5 shadow-xl z-50">
+                          {SECTION_LABELS.map((label) => (
+                            <button
+                              key={label}
+                              onClick={() => addSection(label)}
+                              className="rounded-md px-2.5 py-1.5 text-xs text-zinc-300 hover:bg-emerald-500/20 hover:text-emerald-300 transition-colors capitalize"
+                            >
+                              {label}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Break */}
+                    <button
+                      onClick={() => addMarkerQuick("break")}
+                      className="rounded-lg border border-zinc-700 px-3 py-1.5 text-xs text-zinc-300 hover:bg-zinc-700 hover:text-white transition-colors"
+                    >
+                      + Break
+                    </button>
+
+                    {/* Accent */}
+                    <button
+                      onClick={() => addMarkerQuick("accent")}
+                      className="rounded-lg border border-zinc-700 px-3 py-1.5 text-xs text-zinc-300 hover:bg-zinc-700 hover:text-white transition-colors"
+                    >
+                      + Accent
+                    </button>
+                  </div>
+                )}
               </div>
             )}
           </SpotifyPlayer>
         </div>
 
-        {/* Marker list */}
-        <div className="rounded-2xl border border-zinc-800 bg-zinc-900/50 p-6">
-          <div className="mb-4 flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-white">
-              Breakdown
-            </h2>
-            <span className="text-xs text-zinc-500">
-              {markers.length} marker{markers.length !== 1 ? "s" : ""}
-            </span>
-          </div>
+        {/* Breakdown list */}
+        {(countChanges.length > 0 || markers.length > 0) && (
+          <div className="mt-6 rounded-2xl border border-zinc-800 bg-zinc-900/50 p-5">
+            <div className="space-y-0.5 max-h-[400px] overflow-y-auto">
+              {/* Merge count changes and markers, sorted by beat */}
+              {[
+                ...countChanges.map((cc) => ({
+                  key: cc.id,
+                  beatIndex: cc.beatIndex,
+                  kind: "countChange" as const,
+                  data: cc,
+                })),
+                ...markers.map((m) => ({
+                  key: m.id,
+                  beatIndex: m.beatIndex,
+                  kind: "marker" as const,
+                  data: m,
+                })),
+              ]
+                .sort((a, b) => a.beatIndex - b.beatIndex)
+                .map((item) => {
+                  const ms = beatToMs(item.beatIndex, bpm, firstBeatMs);
 
-          {markers.length === 0 ? (
-            <div className="py-8 text-center text-sm text-zinc-500">
-              No markers yet. Play the song and add markers to annotate
-              the structure.
-              <br />
-              <span className="text-xs text-zinc-600">
-                Use keyboard shortcuts 1-5 or double-click the timeline.
-              </span>
-            </div>
-          ) : (
-            <div className="space-y-1 max-h-[400px] overflow-y-auto">
-              {markers.map((marker) => {
-                const cfg = MARKER_CONFIG[marker.type];
-                return (
-                  <div
-                    key={marker.id}
-                    className="group flex items-center gap-3 rounded-lg px-3 py-2 transition-colors hover:bg-zinc-800/50"
-                  >
-                    {/* Color dot */}
-                    <div
-                      className="h-2.5 w-2.5 shrink-0 rounded-full"
-                      style={{ backgroundColor: cfg.color }}
-                    />
-
-                    {/* Time */}
-                    <span className="w-14 shrink-0 font-mono text-xs text-zinc-400">
-                      {formatTime(marker.timeMs)}
-                    </span>
-
-                    {/* Type */}
-                    <span className="text-sm text-zinc-200">
-                      {cfg.label}
-                    </span>
-
-                    {/* Label */}
-                    {marker.label && (
-                      <span className="rounded-full bg-zinc-800 px-2 py-0.5 text-xs text-zinc-400">
-                        {marker.label}
-                      </span>
-                    )}
-
-                    {/* Spacer */}
-                    <div className="flex-1" />
-
-                    {/* Delete */}
-                    <button
-                      onClick={() => deleteMarker(marker.id)}
-                      className="rounded p-1 text-zinc-600 opacity-0 transition-all hover:bg-red-900/20 hover:text-red-400 group-hover:opacity-100"
-                      title="Delete marker"
-                    >
-                      <svg
-                        className="h-3.5 w-3.5"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
+                  if (item.kind === "countChange") {
+                    const cc = item.data as CountChange;
+                    return (
+                      <div
+                        key={item.key}
+                        className="group flex items-center gap-3 rounded-lg px-3 py-2 hover:bg-zinc-800/50 transition-colors"
                       >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M6 18L18 6M6 6l12 12"
-                        />
-                      </svg>
-                    </button>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
-      </main>
+                        <div className="h-2.5 w-2.5 shrink-0 rounded-full bg-amber-400" />
+                        <span className="w-12 shrink-0 font-mono text-xs text-zinc-500">
+                          {formatTime(ms)}
+                        </span>
+                        <span className="text-sm text-zinc-300">
+                          Count → {cc.resetTo}
+                        </span>
+                        <span className="text-xs text-zinc-600">
+                          beat {cc.beatIndex}
+                        </span>
+                        <div className="flex-1" />
+                        <button
+                          onClick={() => deleteCountChange(cc.id)}
+                          className="rounded p-1 text-zinc-600 opacity-0 group-hover:opacity-100 hover:bg-red-900/20 hover:text-red-400 transition-all"
+                        >
+                          <svg
+                            className="h-3.5 w-3.5"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M6 18L18 6M6 6l12 12"
+                            />
+                          </svg>
+                        </button>
+                      </div>
+                    );
+                  }
 
-      {/* Marker editor modal */}
-      {editorOpen && (
-        <MarkerEditor
-          timeMs={editorTimeMs}
-          onAdd={addMarker}
-          onClose={() => setEditorOpen(false)}
-        />
-      )}
+                  const marker = item.data as Marker;
+                  const cfg = MARKER_CONFIG[marker.type];
+                  return (
+                    <div
+                      key={item.key}
+                      className="group flex items-center gap-3 rounded-lg px-3 py-2 hover:bg-zinc-800/50 transition-colors"
+                    >
+                      <div
+                        className="h-2.5 w-2.5 shrink-0 rounded-full"
+                        style={{ backgroundColor: cfg.color }}
+                      />
+                      <span className="w-12 shrink-0 font-mono text-xs text-zinc-500">
+                        {formatTime(ms)}
+                      </span>
+                      <span className="text-sm text-zinc-300">
+                        {cfg.label}
+                      </span>
+                      {marker.label && (
+                        <span className="rounded-full bg-zinc-800 px-2 py-0.5 text-xs text-zinc-400">
+                          {marker.label}
+                        </span>
+                      )}
+                      <span className="text-xs text-zinc-600">
+                        beat {marker.beatIndex}
+                      </span>
+                      <div className="flex-1" />
+                      <button
+                        onClick={() => deleteMarker(marker.id)}
+                        className="rounded p-1 text-zinc-600 opacity-0 group-hover:opacity-100 hover:bg-red-900/20 hover:text-red-400 transition-all"
+                      >
+                        <svg
+                          className="h-3.5 w-3.5"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M6 18L18 6M6 6l12 12"
+                          />
+                        </svg>
+                      </button>
+                    </div>
+                  );
+                })}
+            </div>
+          </div>
+        )}
+      </main>
     </div>
   );
 }

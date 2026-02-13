@@ -1,4 +1,4 @@
-import type { Song, Breakdown, SongExport } from "@/types";
+import type { SongExport } from "@/types";
 import { getSongs, getAllBreakdowns, getBreakdown } from "./storage";
 
 /** Export a single song + its breakdown to a JSON download */
@@ -9,6 +9,9 @@ export function exportSong(songId: string): void {
 
   const breakdown = getBreakdown(songId) ?? {
     songId,
+    bpm: 0,
+    firstBeatMs: 0,
+    countChanges: [],
     markers: [],
     updatedAt: new Date().toISOString(),
   };
@@ -26,6 +29,9 @@ export function exportAll(): void {
     song,
     breakdown: breakdowns[song.id] ?? {
       songId: song.id,
+      bpm: 0,
+      firstBeatMs: 0,
+      countChanges: [],
       markers: [],
       updatedAt: new Date().toISOString(),
     },
