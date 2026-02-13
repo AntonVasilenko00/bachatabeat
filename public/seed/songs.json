@@ -11,19 +11,21 @@
     },
     "breakdown": {
       "songId": "seed-01",
+      "bpm": 128,
+      "firstBeatMs": 500,
+      "countChanges": [],
       "markers": [
-        { "id": "s01-m01", "timeMs": 0, "type": "section", "label": "intro" },
-        { "id": "s01-m02", "timeMs": 15000, "type": "section", "label": "verse" },
-        { "id": "s01-m03", "timeMs": 30000, "type": "break" },
-        { "id": "s01-m04", "timeMs": 45000, "type": "section", "label": "chorus" },
-        { "id": "s01-m05", "timeMs": 60000, "type": "accent" },
-        { "id": "s01-m06", "timeMs": 75000, "type": "section", "label": "verse" },
-        { "id": "s01-m07", "timeMs": 105000, "type": "break" },
-        { "id": "s01-m08", "timeMs": 120000, "type": "section", "label": "chorus" },
-        { "id": "s01-m09", "timeMs": 150000, "type": "rhythmChange" },
-        { "id": "s01-m10", "timeMs": 165000, "type": "section", "label": "bridge" },
-        { "id": "s01-m11", "timeMs": 190000, "type": "section", "label": "chorus" },
-        { "id": "s01-m12", "timeMs": 220000, "type": "section", "label": "outro" }
+        { "id": "s01-m01", "beatIndex": 0, "type": "section", "label": "intro" },
+        { "id": "s01-m02", "beatIndex": 32, "type": "section", "label": "verse" },
+        { "id": "s01-m03", "beatIndex": 64, "type": "break" },
+        { "id": "s01-m04", "beatIndex": 96, "type": "section", "label": "chorus" },
+        { "id": "s01-m05", "beatIndex": 128, "type": "accent" },
+        { "id": "s01-m06", "beatIndex": 160, "type": "section", "label": "verse" },
+        { "id": "s01-m07", "beatIndex": 224, "type": "break" },
+        { "id": "s01-m08", "beatIndex": 256, "type": "section", "label": "chorus" },
+        { "id": "s01-m09", "beatIndex": 352, "type": "section", "label": "bridge" },
+        { "id": "s01-m10", "beatIndex": 400, "type": "section", "label": "chorus" },
+        { "id": "s01-m11", "beatIndex": 464, "type": "section", "label": "outro" }
       ],
       "updatedAt": "2026-01-01T00:00:00.000Z"
     }
@@ -40,17 +42,20 @@
     },
     "breakdown": {
       "songId": "seed-02",
+      "bpm": 130,
+      "firstBeatMs": 300,
+      "countChanges": [],
       "markers": [
-        { "id": "s02-m01", "timeMs": 0, "type": "section", "label": "intro" },
-        { "id": "s02-m02", "timeMs": 18000, "type": "section", "label": "verse" },
-        { "id": "s02-m03", "timeMs": 42000, "type": "break" },
-        { "id": "s02-m04", "timeMs": 55000, "type": "section", "label": "chorus" },
-        { "id": "s02-m05", "timeMs": 80000, "type": "accent" },
-        { "id": "s02-m06", "timeMs": 90000, "type": "section", "label": "verse" },
-        { "id": "s02-m07", "timeMs": 130000, "type": "break" },
-        { "id": "s02-m08", "timeMs": 145000, "type": "section", "label": "chorus" },
-        { "id": "s02-m09", "timeMs": 175000, "type": "section", "label": "bridge" },
-        { "id": "s02-m10", "timeMs": 200000, "type": "section", "label": "outro" }
+        { "id": "s02-m01", "beatIndex": 0, "type": "section", "label": "intro" },
+        { "id": "s02-m02", "beatIndex": 40, "type": "section", "label": "verse" },
+        { "id": "s02-m03", "beatIndex": 88, "type": "break" },
+        { "id": "s02-m04", "beatIndex": 120, "type": "section", "label": "chorus" },
+        { "id": "s02-m05", "beatIndex": 168, "type": "accent" },
+        { "id": "s02-m06", "beatIndex": 192, "type": "section", "label": "verse" },
+        { "id": "s02-m07", "beatIndex": 280, "type": "break" },
+        { "id": "s02-m08", "beatIndex": 312, "type": "section", "label": "chorus" },
+        { "id": "s02-m09", "beatIndex": 376, "type": "section", "label": "bridge" },
+        { "id": "s02-m10", "beatIndex": 432, "type": "section", "label": "outro" }
       ],
       "updatedAt": "2026-01-01T00:00:00.000Z"
     }
@@ -67,18 +72,20 @@
     },
     "breakdown": {
       "songId": "seed-03",
+      "bpm": 128,
+      "firstBeatMs": 400,
+      "countChanges": [],
       "markers": [
-        { "id": "s03-m01", "timeMs": 0, "type": "section", "label": "intro" },
-        { "id": "s03-m02", "timeMs": 12000, "type": "section", "label": "verse" },
-        { "id": "s03-m03", "timeMs": 35000, "type": "break" },
-        { "id": "s03-m04", "timeMs": 48000, "type": "section", "label": "chorus" },
-        { "id": "s03-m05", "timeMs": 72000, "type": "accent" },
-        { "id": "s03-m06", "timeMs": 85000, "type": "section", "label": "verse" },
-        { "id": "s03-m07", "timeMs": 115000, "type": "break" },
-        { "id": "s03-m08", "timeMs": 125000, "type": "section", "label": "chorus" },
-        { "id": "s03-m09", "timeMs": 155000, "type": "rhythmChange" },
-        { "id": "s03-m10", "timeMs": 170000, "type": "section", "label": "bridge" },
-        { "id": "s03-m11", "timeMs": 190000, "type": "section", "label": "outro" }
+        { "id": "s03-m01", "beatIndex": 0, "type": "section", "label": "intro" },
+        { "id": "s03-m02", "beatIndex": 24, "type": "section", "label": "verse" },
+        { "id": "s03-m03", "beatIndex": 72, "type": "break" },
+        { "id": "s03-m04", "beatIndex": 96, "type": "section", "label": "chorus" },
+        { "id": "s03-m05", "beatIndex": 152, "type": "accent" },
+        { "id": "s03-m06", "beatIndex": 176, "type": "section", "label": "verse" },
+        { "id": "s03-m07", "beatIndex": 240, "type": "break" },
+        { "id": "s03-m08", "beatIndex": 264, "type": "section", "label": "chorus" },
+        { "id": "s03-m09", "beatIndex": 360, "type": "section", "label": "bridge" },
+        { "id": "s03-m10", "beatIndex": 400, "type": "section", "label": "outro" }
       ],
       "updatedAt": "2026-01-01T00:00:00.000Z"
     }

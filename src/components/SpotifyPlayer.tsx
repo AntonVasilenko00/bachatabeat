@@ -183,5 +183,6 @@ export default function SpotifyPlayer({
     );
   }
 
+  // eslint-disable-next-line react-hooks/refs
   return <>{children?.(controls)}</>;
 }

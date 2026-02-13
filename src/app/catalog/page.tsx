@@ -108,7 +108,9 @@ export default function CatalogPage() {
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {filtered.map((song) => {
               const bd = breakdowns[song.id];
-              const markerCount = bd?.markers?.length ?? 0;
+              const hasBpm = bd?.bpm && bd.bpm > 0;
+              const eventCount =
+                (bd?.countChanges?.length ?? 0) + (bd?.markers?.length ?? 0);
 
               return (
                 <Link
@@ -140,15 +142,20 @@ export default function CatalogPage() {
                       {song.artist}
                     </p>
                     <div className="mt-1 flex items-center gap-2">
-                      {markerCount > 0 ? (
+                      {hasBpm ? (
                         <span className="rounded-full bg-zinc-800 px-2 py-0.5 text-[10px] text-zinc-400">
-                          {markerCount} marker{markerCount !== 1 ? "s" : ""}
+                          {bd.bpm} BPM
                         </span>
-                      ) : (
+                      ) : null}
+                      {eventCount > 0 ? (
+                        <span className="rounded-full bg-zinc-800 px-2 py-0.5 text-[10px] text-zinc-400">
+                          {eventCount} event{eventCount !== 1 ? "s" : ""}
+                        </span>
+                      ) : !hasBpm ? (
                         <span className="rounded-full bg-zinc-800/50 px-2 py-0.5 text-[10px] text-zinc-500">
                           No breakdown yet
                         </span>
-                      )}
+                      ) : null}
                     </div>
                   </div>
 
