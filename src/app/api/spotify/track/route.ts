@@ -9,7 +9,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
   }
 
-  const accessToken = (session as Record<string, unknown>).accessToken as string;
+  const accessToken = (session as unknown as Record<string, unknown>).accessToken as string;
   if (!accessToken) {
     return NextResponse.json({ error: "No access token" }, { status: 401 });
   }

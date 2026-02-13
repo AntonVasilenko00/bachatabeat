@@ -38,7 +38,7 @@ export const authOptions: NextAuthOptions = {
     },
     async session({ session, token }) {
       // Expose the access token to the client so the Playback SDK can use it
-      (session as Record<string, unknown>).accessToken = token.accessToken;
+      (session as unknown as Record<string, unknown>).accessToken = token.accessToken;
       return session;
     },
   },

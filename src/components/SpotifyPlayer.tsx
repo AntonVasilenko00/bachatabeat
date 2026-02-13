@@ -38,7 +38,7 @@ export default function SpotifyPlayer({
   children,
 }: SpotifyPlayerProps) {
   const { data: session } = useSession();
-  const accessToken = (session as Record<string, unknown> | null)
+  const accessToken = (session as unknown as Record<string, unknown> | null)
     ?.accessToken as string | undefined;
 
   const playerRef = useRef<Spotify.Player | null>(null);
