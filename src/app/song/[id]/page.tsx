@@ -104,7 +104,6 @@ export default function SongPage() {
   const handleTap = useCallback(() => {
     const now = Date.now();
 
-    // Reset if last tap was > 2 seconds ago
     if (tapTimeoutRef.current) clearTimeout(tapTimeoutRef.current);
     tapTimeoutRef.current = setTimeout(() => {
       tapTimesRef.current = [];
@@ -112,10 +111,8 @@ export default function SongPage() {
 
     tapTimesRef.current.push(now);
 
-    // Need at least 2 taps
     if (tapTimesRef.current.length >= 2) {
       const taps = tapTimesRef.current;
-      // Keep last 8 taps max
       if (taps.length > 8) taps.shift();
 
       const intervals: number[] = [];
@@ -155,7 +152,6 @@ export default function SongPage() {
       const beat = nearestBeat(currentPositionMs, bpm, firstBeatMs);
       if (beat < 0 || bpm <= 0) return;
 
-      // Don't add duplicate at same beat
       const existing = countChanges.find((cc) => cc.beatIndex === beat);
       if (existing) {
         setCountChanges((prev) =>
@@ -253,7 +249,6 @@ export default function SongPage() {
         setShowSectionPicker(false);
       }
     };
-    // Delay to avoid closing immediately
     const timer = setTimeout(() => {
       document.addEventListener("click", handler);
     }, 10);
@@ -275,41 +270,43 @@ export default function SongPage() {
   }
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen pb-8">
       <Header />
 
-      <main className="mx-auto max-w-5xl px-4 py-8">
+      <main className="mx-auto max-w-5xl px-3 sm:px-4 py-4 sm:py-8">
         {/* Song info header */}
-        <div className="mb-6 flex items-center gap-4">
+        <div className="mb-4 sm:mb-6 flex items-center gap-3">
           {song.albumArt ? (
             <Image
               src={song.albumArt}
               alt={song.title}
-              width={64}
-              height={64}
-              className="h-16 w-16 shrink-0 rounded-xl object-cover shadow-lg"
+              width={56}
+              height={56}
+              className="h-12 w-12 sm:h-14 sm:w-14 shrink-0 rounded-xl object-cover shadow-lg"
             />
           ) : (
-            <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-xl bg-zinc-800 text-2xl">
+            <div className="flex h-12 w-12 sm:h-14 sm:w-14 shrink-0 items-center justify-center rounded-xl bg-zinc-800 text-xl">
               🎵
             </div>
           )}
           <div className="min-w-0 flex-1">
-            <h1 className="text-xl font-bold text-white truncate">
+            <h1 className="text-base sm:text-xl font-bold text-white truncate">
               {song.title}
             </h1>
-            <p className="text-sm text-zinc-400">{song.artist}</p>
+            <p className="text-xs sm:text-sm text-zinc-400 truncate">
+              {song.artist}
+            </p>
           </div>
-          <div className="flex shrink-0 gap-2">
+          <div className="flex shrink-0 gap-1.5 sm:gap-2">
             <button
               onClick={() => exportSong(song.id)}
-              className="rounded-lg border border-zinc-700 px-3 py-1.5 text-xs text-zinc-400 hover:bg-zinc-800 hover:text-white transition-colors"
+              className="rounded-lg border border-zinc-700 px-2 sm:px-3 py-1.5 text-[10px] sm:text-xs text-zinc-400 hover:bg-zinc-800 hover:text-white transition-colors"
             >
               Export
             </button>
             <button
               onClick={handleDeleteSong}
-              className="rounded-lg border border-red-900/50 px-3 py-1.5 text-xs text-red-400/70 hover:bg-red-900/20 hover:text-red-300 transition-colors"
+              className="rounded-lg border border-red-900/50 px-2 sm:px-3 py-1.5 text-[10px] sm:text-xs text-red-400/70 hover:bg-red-900/20 hover:text-red-300 transition-colors"
             >
               Delete
             </button>
@@ -317,16 +314,16 @@ export default function SongPage() {
         </div>
 
         {/* Player + controls */}
-        <div className="rounded-2xl border border-zinc-800 bg-zinc-900/50 p-5">
+        <div className="rounded-2xl border border-zinc-800 bg-zinc-900/50 p-3 sm:p-5">
           <SpotifyPlayer
             spotifyUri={`spotify:track:${song.spotifyId}`}
             onTimeUpdate={handleTimeUpdate}
             onDuration={handleDuration}
           >
             {(controls) => (
-              <div className="space-y-4">
+              <div className="space-y-3 sm:space-y-4">
                 {/* BPM config row */}
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
                   <div className="flex items-center rounded-lg border border-zinc-700 bg-zinc-800 overflow-hidden">
                     <input
                       type="number"
@@ -335,56 +332,84 @@ export default function SongPage() {
                       placeholder="BPM"
                       min={30}
                       max={250}
-                      className="w-16 bg-transparent px-2.5 py-1.5 text-sm text-white placeholder-zinc-500 outline-none text-center [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                      className="w-14 sm:w-16 bg-transparent px-2 sm:px-2.5 py-1.5 text-sm text-white placeholder-zinc-500 outline-none text-center [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                     />
-                    <span className="pr-2 text-[10px] text-zinc-500">BPM</span>
+                    <span className="pr-1.5 sm:pr-2 text-[10px] text-zinc-500">
+                      BPM
+                    </span>
                   </div>
 
                   <button
                     onClick={handleTap}
-                    className="rounded-lg border border-zinc-700 px-3 py-1.5 text-xs text-zinc-300 hover:bg-zinc-700 hover:text-white transition-colors active:bg-zinc-600"
+                    className="rounded-lg border border-zinc-700 px-2.5 sm:px-3 py-1.5 text-xs text-zinc-300 hover:bg-zinc-700 hover:text-white transition-colors active:bg-zinc-600"
                   >
                     Tap
                   </button>
 
                   <button
                     onClick={handleSetFirstBeat}
-                    className="rounded-lg border border-zinc-700 px-3 py-1.5 text-xs text-zinc-300 hover:bg-zinc-700 hover:text-white transition-colors"
+                    className={`rounded-lg border px-2.5 sm:px-3 py-1.5 text-xs transition-colors active:bg-zinc-600 ${
+                      firstBeatMs > 0
+                        ? "border-white/20 text-white bg-zinc-700"
+                        : "border-zinc-700 text-zinc-300 hover:bg-zinc-700 hover:text-white"
+                    }`}
                   >
                     Set 1
                   </button>
 
                   {firstBeatMs > 0 && (
                     <span className="text-[10px] text-zinc-500 font-mono">
-                      1st @ {formatTime(firstBeatMs)}
+                      @ {formatTime(firstBeatMs)}
                     </span>
-                  )}
-
-                  <div className="flex-1" />
-
-                  {/* Current count display */}
-                  {bpm > 0 && currentBeat >= 0 && (
-                    <div className="flex items-center gap-1.5">
-                      {Array.from({ length: 8 }, (_, i) => i + 1).map(
-                        (num) => (
-                          <div
-                            key={num}
-                            className={`flex h-7 w-7 items-center justify-center rounded-md text-xs font-bold transition-all ${
-                              currentCount === num
-                                ? "bg-white text-black scale-110"
-                                : "bg-zinc-800 text-zinc-600"
-                            }`}
-                          >
-                            {num}
-                          </div>
-                        )
-                      )}
-                    </div>
                   )}
                 </div>
 
+                {/* Count display - always own row */}
+                {bpm > 0 && currentBeat >= 0 && (
+                  <div className="flex items-center justify-center gap-1 sm:gap-1.5">
+                    {Array.from({ length: 8 }, (_, i) => i + 1).map((num) => (
+                      <div
+                        key={num}
+                        className={`flex h-8 w-8 sm:h-9 sm:w-9 items-center justify-center rounded-lg text-sm sm:text-base font-bold transition-all ${
+                          currentCount === num
+                            ? "bg-white text-black scale-110 shadow-lg shadow-white/20"
+                            : "bg-zinc-800 text-zinc-600"
+                        }`}
+                      >
+                        {num}
+                      </div>
+                    ))}
+                  </div>
+                )}
+
                 {/* Play controls */}
-                <div className="flex items-center justify-center gap-3">
+                <div className="flex items-center justify-center gap-1 sm:gap-2">
+                  {/* Restart (seek to 0:00) */}
+                  <button
+                    onClick={() => controls.seek(0)}
+                    className="rounded-lg p-2 text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors active:bg-zinc-700"
+                  >
+                    <svg
+                      className="h-4 w-4"
+                      fill="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <rect x="4" y="5" width="2.5" height="14" rx="0.5" />
+                      <path d="M9 12l9-7v14l-9-7z" />
+                    </svg>
+                  </button>
+
+                  {/* Go to beat 1 — only if firstBeatMs > 0 */}
+                  {firstBeatMs > 0 && (
+                    <button
+                      onClick={() => controls.seek(firstBeatMs)}
+                      className="rounded-lg border border-amber-500/30 px-2 py-1.5 text-[10px] sm:text-xs font-bold text-amber-400 hover:text-amber-300 hover:bg-amber-500/10 transition-colors active:bg-amber-500/20"
+                    >
+                      ♩1
+                    </button>
+                  )}
+
+                  {/* Back 5s */}
                   <button
                     onClick={() =>
                       controls.seek(Math.max(0, controls.positionMs - 5000))
@@ -406,9 +431,10 @@ export default function SongPage() {
                     </svg>
                   </button>
 
+                  {/* Play/Pause */}
                   <button
                     onClick={controls.togglePlay}
-                    className="flex h-10 w-10 items-center justify-center rounded-full bg-white text-black hover:scale-105 hover:bg-zinc-200 transition-all"
+                    className="flex h-11 w-11 sm:h-12 sm:w-12 items-center justify-center rounded-full bg-white text-black hover:scale-105 hover:bg-zinc-200 transition-all"
                   >
                     {controls.isPlaying ? (
                       <svg
@@ -429,6 +455,7 @@ export default function SongPage() {
                     )}
                   </button>
 
+                  {/* Forward 5s */}
                   <button
                     onClick={() =>
                       controls.seek(
@@ -466,7 +493,7 @@ export default function SongPage() {
 
                 {/* Action buttons */}
                 {bpm > 0 && (
-                  <div className="flex items-center justify-center gap-2">
+                  <div className="flex items-center justify-center gap-1.5 sm:gap-2 flex-wrap">
                     {/* Count change */}
                     <div className="relative" data-picker>
                       <button
@@ -474,18 +501,18 @@ export default function SongPage() {
                           setShowCountPicker(!showCountPicker);
                           setShowSectionPicker(false);
                         }}
-                        className="rounded-lg border border-zinc-700 px-3 py-1.5 text-xs text-zinc-300 hover:bg-zinc-700 hover:text-white transition-colors"
+                        className="rounded-lg border border-zinc-700 px-2.5 sm:px-3 py-1.5 text-[11px] sm:text-xs text-zinc-300 hover:bg-zinc-700 hover:text-white transition-colors"
                       >
-                        + Count Change
+                        + Count
                       </button>
                       {showCountPicker && (
-                        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 flex gap-1 rounded-lg border border-zinc-700 bg-zinc-800 p-1.5 shadow-xl z-50">
+                        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 flex gap-0.5 sm:gap-1 rounded-lg border border-zinc-700 bg-zinc-800 p-1 sm:p-1.5 shadow-xl z-50">
                           {Array.from({ length: 8 }, (_, i) => i + 1).map(
                             (num) => (
                               <button
                                 key={num}
                                 onClick={() => addCountChange(num)}
-                                className="flex h-8 w-8 items-center justify-center rounded-md text-sm font-bold text-zinc-300 hover:bg-white hover:text-black transition-colors"
+                                className="flex h-8 w-8 items-center justify-center rounded-md text-sm font-bold text-zinc-300 hover:bg-white hover:text-black transition-colors active:bg-zinc-200"
                               >
                                 {num}
                               </button>
@@ -502,17 +529,17 @@ export default function SongPage() {
                           setShowSectionPicker(!showSectionPicker);
                           setShowCountPicker(false);
                         }}
-                        className="rounded-lg border border-zinc-700 px-3 py-1.5 text-xs text-zinc-300 hover:bg-zinc-700 hover:text-white transition-colors"
+                        className="rounded-lg border border-zinc-700 px-2.5 sm:px-3 py-1.5 text-[11px] sm:text-xs text-zinc-300 hover:bg-zinc-700 hover:text-white transition-colors"
                       >
                         + Section
                       </button>
                       {showSectionPicker && (
-                        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 flex gap-1 rounded-lg border border-zinc-700 bg-zinc-800 p-1.5 shadow-xl z-50">
+                        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 flex flex-wrap justify-center gap-1 rounded-lg border border-zinc-700 bg-zinc-800 p-1.5 shadow-xl z-50 min-w-[200px]">
                           {SECTION_LABELS.map((label) => (
                             <button
                               key={label}
                               onClick={() => addSection(label)}
-                              className="rounded-md px-2.5 py-1.5 text-xs text-zinc-300 hover:bg-emerald-500/20 hover:text-emerald-300 transition-colors capitalize"
+                              className="rounded-md px-2.5 py-1.5 text-xs text-zinc-300 hover:bg-emerald-500/20 hover:text-emerald-300 transition-colors capitalize active:bg-emerald-500/30"
                             >
                               {label}
                             </button>
@@ -524,7 +551,7 @@ export default function SongPage() {
                     {/* Break */}
                     <button
                       onClick={() => addMarkerQuick("break")}
-                      className="rounded-lg border border-zinc-700 px-3 py-1.5 text-xs text-zinc-300 hover:bg-zinc-700 hover:text-white transition-colors"
+                      className="rounded-lg border border-zinc-700 px-2.5 sm:px-3 py-1.5 text-[11px] sm:text-xs text-zinc-300 hover:bg-zinc-700 hover:text-white transition-colors active:bg-zinc-600"
                     >
                       + Break
                     </button>
@@ -532,7 +559,7 @@ export default function SongPage() {
                     {/* Accent */}
                     <button
                       onClick={() => addMarkerQuick("accent")}
-                      className="rounded-lg border border-zinc-700 px-3 py-1.5 text-xs text-zinc-300 hover:bg-zinc-700 hover:text-white transition-colors"
+                      className="rounded-lg border border-zinc-700 px-2.5 sm:px-3 py-1.5 text-[11px] sm:text-xs text-zinc-300 hover:bg-zinc-700 hover:text-white transition-colors active:bg-zinc-600"
                     >
                       + Accent
                     </button>
@@ -545,9 +572,8 @@ export default function SongPage() {
 
         {/* Breakdown list */}
         {(countChanges.length > 0 || markers.length > 0) && (
-          <div className="mt-6 rounded-2xl border border-zinc-800 bg-zinc-900/50 p-5">
-            <div className="space-y-0.5 max-h-[400px] overflow-y-auto">
-              {/* Merge count changes and markers, sorted by beat */}
+          <div className="mt-4 sm:mt-6 rounded-2xl border border-zinc-800 bg-zinc-900/50 p-3 sm:p-5">
+            <div className="space-y-0.5 max-h-[50vh] sm:max-h-[400px] overflow-y-auto">
               {[
                 ...countChanges.map((cc) => ({
                   key: cc.id,
@@ -571,22 +597,19 @@ export default function SongPage() {
                     return (
                       <div
                         key={item.key}
-                        className="group flex items-center gap-3 rounded-lg px-3 py-2 hover:bg-zinc-800/50 transition-colors"
+                        className="group flex items-center gap-2 sm:gap-3 rounded-lg px-2 sm:px-3 py-2 hover:bg-zinc-800/50 transition-colors"
                       >
-                        <div className="h-2.5 w-2.5 shrink-0 rounded-full bg-amber-400" />
-                        <span className="w-12 shrink-0 font-mono text-xs text-zinc-500">
+                        <div className="h-2 w-2 sm:h-2.5 sm:w-2.5 shrink-0 rounded-full bg-amber-400" />
+                        <span className="w-10 sm:w-12 shrink-0 font-mono text-[10px] sm:text-xs text-zinc-500">
                           {formatTime(ms)}
                         </span>
-                        <span className="text-sm text-zinc-300">
+                        <span className="text-xs sm:text-sm text-zinc-300">
                           Count → {cc.resetTo}
-                        </span>
-                        <span className="text-xs text-zinc-600">
-                          beat {cc.beatIndex}
                         </span>
                         <div className="flex-1" />
                         <button
                           onClick={() => deleteCountChange(cc.id)}
-                          className="rounded p-1 text-zinc-600 opacity-0 group-hover:opacity-100 hover:bg-red-900/20 hover:text-red-400 transition-all"
+                          className="rounded p-1.5 text-zinc-600 sm:opacity-0 sm:group-hover:opacity-100 hover:bg-red-900/20 hover:text-red-400 transition-all"
                         >
                           <svg
                             className="h-3.5 w-3.5"
@@ -611,30 +634,27 @@ export default function SongPage() {
                   return (
                     <div
                       key={item.key}
-                      className="group flex items-center gap-3 rounded-lg px-3 py-2 hover:bg-zinc-800/50 transition-colors"
+                      className="group flex items-center gap-2 sm:gap-3 rounded-lg px-2 sm:px-3 py-2 hover:bg-zinc-800/50 transition-colors"
                     >
                       <div
-                        className="h-2.5 w-2.5 shrink-0 rounded-full"
+                        className="h-2 w-2 sm:h-2.5 sm:w-2.5 shrink-0 rounded-full"
                         style={{ backgroundColor: cfg.color }}
                       />
-                      <span className="w-12 shrink-0 font-mono text-xs text-zinc-500">
+                      <span className="w-10 sm:w-12 shrink-0 font-mono text-[10px] sm:text-xs text-zinc-500">
                         {formatTime(ms)}
                       </span>
-                      <span className="text-sm text-zinc-300">
+                      <span className="text-xs sm:text-sm text-zinc-300">
                         {cfg.label}
                       </span>
                       {marker.label && (
-                        <span className="rounded-full bg-zinc-800 px-2 py-0.5 text-xs text-zinc-400">
+                        <span className="rounded-full bg-zinc-800 px-1.5 sm:px-2 py-0.5 text-[10px] sm:text-xs text-zinc-400">
                           {marker.label}
                         </span>
                       )}
-                      <span className="text-xs text-zinc-600">
-                        beat {marker.beatIndex}
-                      </span>
                       <div className="flex-1" />
                       <button
                         onClick={() => deleteMarker(marker.id)}
-                        className="rounded p-1 text-zinc-600 opacity-0 group-hover:opacity-100 hover:bg-red-900/20 hover:text-red-400 transition-all"
+                        className="rounded p-1.5 text-zinc-600 sm:opacity-0 sm:group-hover:opacity-100 hover:bg-red-900/20 hover:text-red-400 transition-all"
                       >
                         <svg
                           className="h-3.5 w-3.5"

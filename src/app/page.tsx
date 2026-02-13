@@ -57,26 +57,25 @@ export default function HomePage() {
     <div className="min-h-screen">
       <Header />
 
-      <main className="mx-auto max-w-5xl px-4">
+      <main className="mx-auto max-w-5xl px-3 sm:px-4">
         {/* Hero */}
-        <section className="flex flex-col items-center pt-24 pb-16 text-center">
-          <div className="mb-6 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-rose-500 to-orange-400 text-2xl font-bold text-white shadow-xl shadow-rose-500/25">
+        <section className="flex flex-col items-center pt-12 sm:pt-24 pb-10 sm:pb-16 text-center">
+          <div className="mb-4 sm:mb-6 flex h-12 w-12 sm:h-16 sm:w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-rose-500 to-orange-400 text-xl sm:text-2xl font-bold text-white shadow-xl shadow-rose-500/25">
             B
           </div>
-          <h1 className="mb-3 text-4xl font-bold tracking-tight text-white sm:text-5xl">
+          <h1 className="mb-2 sm:mb-3 text-3xl sm:text-5xl font-bold tracking-tight text-white">
             BachataBeat
           </h1>
-          <p className="mb-2 text-lg text-zinc-400 max-w-lg">
+          <p className="mb-2 text-base sm:text-lg text-zinc-400 max-w-lg px-2">
             Annotate bachata songs with counts, breaks, accents, and sections.
-            Browse the community catalog.
           </p>
-          <p className="text-sm text-zinc-500 max-w-md">
+          <p className="text-xs sm:text-sm text-zinc-500 max-w-md px-2">
             Made by dancers, for dancers. Paste a Spotify link to get started.
           </p>
         </section>
 
         {/* Add song */}
-        <section className="mx-auto max-w-lg">
+        <section className="mx-auto max-w-lg px-1">
           {session ? (
             <div className="space-y-3">
               <div className="flex gap-2">
@@ -86,17 +85,17 @@ export default function HomePage() {
                   onChange={(e) => setUrl(e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && handleAddSong()}
                   placeholder="Paste Spotify track URL or URI..."
-                  className="flex-1 rounded-xl border border-zinc-700 bg-zinc-900 px-4 py-3 text-sm text-white placeholder-zinc-500 outline-none transition-colors focus:border-zinc-500"
+                  className="flex-1 min-w-0 rounded-xl border border-zinc-700 bg-zinc-900 px-3 sm:px-4 py-2.5 sm:py-3 text-sm text-white placeholder-zinc-500 outline-none transition-colors focus:border-zinc-500"
                 />
                 <button
                   onClick={handleAddSong}
                   disabled={loading || !url.trim()}
-                  className="rounded-xl bg-white px-5 py-3 text-sm font-medium text-black transition-all hover:bg-zinc-200 disabled:opacity-40 disabled:cursor-not-allowed"
+                  className="shrink-0 rounded-xl bg-white px-4 sm:px-5 py-2.5 sm:py-3 text-sm font-medium text-black transition-all hover:bg-zinc-200 disabled:opacity-40 disabled:cursor-not-allowed"
                 >
                   {loading ? (
                     <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-zinc-400 border-t-black" />
                   ) : (
-                    "Add Song"
+                    "Add"
                   )}
                 </button>
               </div>
@@ -105,7 +104,7 @@ export default function HomePage() {
                 <p className="text-sm text-red-400">{error}</p>
               )}
 
-              <p className="text-center text-xs text-zinc-600">
+              <p className="text-center text-[10px] sm:text-xs text-zinc-600 truncate">
                 Example: https://open.spotify.com/track/4cOdK2wGLETKBW3PvgPWqT
               </p>
             </div>
