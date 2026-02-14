@@ -73,6 +73,18 @@ export default function Timeline({
     return ticks;
   }, [bpm, firstBeatMs, totalBeats, durationMs, countChanges]);
 
+  // Every-8-beats (bar) indicators
+  const barTicks = useMemo(() => {
+    if (bpm <= 0 || totalBeats <= 0) return [];
+    const ticks: { beatIndex: number; pct: number }[] = [];
+    for (let i = 0; i < totalBeats; i += 8) {
+      const ms = beatToMs(i, bpm, firstBeatMs);
+      const pct = (ms / durationMs) * 100;
+      ticks.push({ beatIndex: i, pct });
+    }
+    return ticks;
+  }, [bpm, firstBeatMs, totalBeats, durationMs]);
+
   // Count change positions on the bar
   const countChangePositions = useMemo(() => {
     return countChanges.map((cc) => {
@@ -108,6 +120,17 @@ export default function Timeline({
           className="absolute inset-y-0 left-0 bg-zinc-700/40 transition-[width] duration-100"
           style={{ width: `${progress}%` }}
         />
+
+        {/* Every-8-beats (bar) indicators */}
+        {barTicks.map((tick) => (
+          <div
+            key={`bar-${tick.beatIndex}`}
+            className="absolute top-0 bottom-0 z-[4]"
+            style={{ left: `${tick.pct}%` }}
+          >
+            <div className="w-px h-full bg-zinc-400/70" />
+          </div>
+        ))}
 
         {/* Beat tick marks */}
         {beatTicks.map((tick) => (

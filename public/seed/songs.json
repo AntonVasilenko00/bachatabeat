@@ -12,7 +12,7 @@
     "breakdown": {
       "songId": "seed-01",
       "bpm": 128,
-      "firstBeatMs": 500,
+      "firstBeatMs": 0,
       "countChanges": [],
       "markers": [
         { "id": "s01-m01", "beatIndex": 0, "type": "section", "label": "intro" },
@@ -43,7 +43,7 @@
     "breakdown": {
       "songId": "seed-02",
       "bpm": 130,
-      "firstBeatMs": 300,
+      "firstBeatMs": 0,
       "countChanges": [],
       "markers": [
         { "id": "s02-m01", "beatIndex": 0, "type": "section", "label": "intro" },
@@ -73,7 +73,7 @@
     "breakdown": {
       "songId": "seed-03",
       "bpm": 128,
-      "firstBeatMs": 400,
+      "firstBeatMs": 0,
       "countChanges": [],
       "markers": [
         { "id": "s03-m01", "beatIndex": 0, "type": "section", "label": "intro" },

@@ -43,10 +43,6 @@ export default function SongPage() {
   const [showSectionPicker, setShowSectionPicker] = useState(false);
   const [bpmInput, setBpmInput] = useState("");
 
-  // Tap tempo state
-  const tapTimesRef = useRef<number[]>([]);
-  const tapTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
   // Load song and breakdown
   useEffect(() => {
     async function load() {
@@ -60,7 +56,7 @@ export default function SongPage() {
       const bd = getBreakdown(s.id);
       if (bd) {
         setBpm(bd.bpm || 0);
-        setFirstBeatMs(bd.firstBeatMs || 0);
+        setFirstBeatMs(bd.firstBeatMs ?? 0);
         setCountChanges(bd.countChanges || []);
         setMarkers(bd.markers || []);
         setBpmInput(bd.bpm ? String(bd.bpm) : "");
@@ -97,35 +93,6 @@ export default function SongPage() {
     const num = parseFloat(value);
     if (!isNaN(num) && num > 0 && num < 300) {
       setBpm(num);
-    }
-  }, []);
-
-  // Tap tempo
-  const handleTap = useCallback(() => {
-    const now = Date.now();
-
-    if (tapTimeoutRef.current) clearTimeout(tapTimeoutRef.current);
-    tapTimeoutRef.current = setTimeout(() => {
-      tapTimesRef.current = [];
-    }, 2000);
-
-    tapTimesRef.current.push(now);
-
-    if (tapTimesRef.current.length >= 2) {
-      const taps = tapTimesRef.current;
-      if (taps.length > 8) taps.shift();
-
-      const intervals: number[] = [];
-      for (let i = 1; i < taps.length; i++) {
-        intervals.push(taps[i] - taps[i - 1]);
-      }
-      const avgInterval =
-        intervals.reduce((a, b) => a + b, 0) / intervals.length;
-      const detectedBpm = Math.round(60000 / avgInterval);
-      if (detectedBpm > 30 && detectedBpm < 300) {
-        setBpm(detectedBpm);
-        setBpmInput(String(detectedBpm));
-      }
     }
   }, []);
 
@@ -338,13 +305,6 @@ export default function SongPage() {
                       BPM
                     </span>
                   </div>
-
-                  <button
-                    onClick={handleTap}
-                    className="rounded-lg border border-zinc-700 px-2.5 sm:px-3 py-1.5 text-xs text-zinc-300 hover:bg-zinc-700 hover:text-white transition-colors active:bg-zinc-600"
-                  >
-                    Tap
-                  </button>
 
                   <button
                     onClick={handleSetFirstBeat}
