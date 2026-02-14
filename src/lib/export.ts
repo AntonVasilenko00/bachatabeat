@@ -1,11 +1,11 @@
 import type { SongExport } from "@/types";
 import { getSongs, getAllBreakdowns, getBreakdown } from "./storage";
 
-/** Export a single song + its breakdown to a JSON download */
-export function exportSong(songId: string): void {
+/** Build song + breakdown as SongExport (for copy or download). */
+export function getSongExport(songId: string): SongExport | null {
   const songs = getSongs();
   const song = songs.find((s) => s.id === songId);
-  if (!song) return;
+  if (!song) return null;
 
   const breakdown = getBreakdown(songId) ?? {
     songId,
@@ -16,8 +16,16 @@ export function exportSong(songId: string): void {
     updatedAt: new Date().toISOString(),
   };
 
-  const data: SongExport = { song, breakdown };
-  downloadJson(data, `bachatabeat-${slugify(song.title)}.json`);
+  return { song, breakdown };
+}
+
+/** Copy a single song + its breakdown as JSON to the clipboard. Returns true on success. */
+export async function copySongExport(songId: string): Promise<boolean> {
+  const data = getSongExport(songId);
+  if (!data) return false;
+  const json = JSON.stringify(data, null, 2);
+  await navigator.clipboard.writeText(json);
+  return true;
 }
 
 /** Export all songs + breakdowns to a single JSON download */

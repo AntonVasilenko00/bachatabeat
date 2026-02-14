@@ -14,7 +14,7 @@ import {
   deleteSong,
   loadSeedIfNeeded,
 } from "@/lib/storage";
-import { exportSong } from "@/lib/export";
+import { copySongExport } from "@/lib/export";
 import { formatTime } from "@/lib/spotify";
 import {
   nearestBeat,
@@ -42,6 +42,7 @@ export default function SongPage() {
   const [showCountPicker, setShowCountPicker] = useState(false);
   const [showSectionPicker, setShowSectionPicker] = useState(false);
   const [bpmInput, setBpmInput] = useState("");
+  const [copySuccess, setCopySuccess] = useState(false);
 
   // Load song and breakdown
   useEffect(() => {
@@ -266,10 +267,16 @@ export default function SongPage() {
           </div>
           <div className="flex shrink-0 gap-1.5 sm:gap-2">
             <button
-              onClick={() => exportSong(song.id)}
+              onClick={async () => {
+                const ok = await copySongExport(song.id);
+                if (ok) {
+                  setCopySuccess(true);
+                  setTimeout(() => setCopySuccess(false), 2000);
+                }
+              }}
               className="rounded-lg border border-zinc-700 px-2 sm:px-3 py-1.5 text-[10px] sm:text-xs text-zinc-400 hover:bg-zinc-800 hover:text-white transition-colors"
             >
-              Export
+              {copySuccess ? "Copied!" : "Copy JSON"}
             </button>
             <button
               onClick={handleDeleteSong}
