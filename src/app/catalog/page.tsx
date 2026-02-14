@@ -38,28 +38,27 @@ export default function CatalogPage() {
     <div className="min-h-screen">
       <Header />
 
-      <main className="mx-auto max-w-5xl px-4 py-8">
+      <main className="mx-auto max-w-5xl px-3 sm:px-4 py-4 sm:py-8">
         {/* Page header */}
-        <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="mb-4 sm:mb-8 flex flex-col gap-3 sm:gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-white">Song Catalog</h1>
-            <p className="text-sm text-zinc-400">
-              {songs.length} song{songs.length !== 1 ? "s" : ""} in your
-              catalog
+            <h1 className="text-xl sm:text-2xl font-bold text-white">Song Catalog</h1>
+            <p className="text-xs sm:text-sm text-zinc-400">
+              {songs.length} song{songs.length !== 1 ? "s" : ""}
             </p>
           </div>
           <div className="flex gap-2">
             {songs.length > 0 && (
               <button
                 onClick={() => exportAll()}
-                className="rounded-lg border border-zinc-700 px-3 py-2 text-xs text-zinc-300 transition-colors hover:bg-zinc-800 hover:text-white"
+                className="rounded-lg border border-zinc-700 px-2.5 sm:px-3 py-1.5 sm:py-2 text-[10px] sm:text-xs text-zinc-300 transition-colors hover:bg-zinc-800 hover:text-white"
               >
-                Export All to JSON
+                Export All
               </button>
             )}
             <Link
               href="/"
-              className="rounded-lg bg-white px-3 py-2 text-xs font-medium text-black transition-colors hover:bg-zinc-200"
+              className="rounded-lg bg-white px-2.5 sm:px-3 py-1.5 sm:py-2 text-[10px] sm:text-xs font-medium text-black transition-colors hover:bg-zinc-200"
             >
               + Add Song
             </Link>
@@ -68,24 +67,24 @@ export default function CatalogPage() {
 
         {/* Search */}
         {songs.length > 0 && (
-          <div className="mb-6">
+          <div className="mb-4 sm:mb-6">
             <input
               type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search by title or artist..."
-              className="w-full max-w-md rounded-xl border border-zinc-700 bg-zinc-900 px-4 py-2.5 text-sm text-white placeholder-zinc-500 outline-none transition-colors focus:border-zinc-500"
+              placeholder="Search..."
+              className="w-full max-w-md rounded-xl border border-zinc-700 bg-zinc-900 px-3 sm:px-4 py-2 sm:py-2.5 text-sm text-white placeholder-zinc-500 outline-none transition-colors focus:border-zinc-500"
             />
           </div>
         )}
 
         {/* Song grid */}
         {!loaded ? (
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid grid-cols-1 gap-2 sm:gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {[...Array(6)].map((_, i) => (
               <div
                 key={i}
-                className="h-24 animate-pulse rounded-xl bg-zinc-800/50"
+                className="h-20 sm:h-24 animate-pulse rounded-xl bg-zinc-800/50"
               />
             ))}
           </div>
@@ -105,7 +104,7 @@ export default function CatalogPage() {
             )}
           </div>
         ) : (
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid grid-cols-1 gap-2 sm:gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {filtered.map((song) => {
               const bd = breakdowns[song.id];
               const hasBpm = bd?.bpm && bd.bpm > 0;

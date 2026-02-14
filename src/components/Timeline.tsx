@@ -90,9 +90,9 @@ export default function Timeline({
   }, [markers, bpm, firstBeatMs, durationMs]);
 
   return (
-    <div className="w-full space-y-2">
+    <div className="w-full space-y-1.5 sm:space-y-2">
       {/* Time display */}
-      <div className="flex items-center justify-between text-xs text-zinc-500 font-mono">
+      <div className="flex items-center justify-between text-[10px] sm:text-xs text-zinc-500 font-mono">
         <span>{formatTime(positionMs)}</span>
         <span>{formatTime(durationMs)}</span>
       </div>
@@ -100,7 +100,7 @@ export default function Timeline({
       {/* Timeline bar */}
       <div
         ref={barRef}
-        className="group relative h-14 cursor-pointer rounded-lg bg-zinc-800 overflow-hidden select-none"
+        className="group relative h-10 sm:h-14 cursor-pointer rounded-lg bg-zinc-800 overflow-hidden select-none touch-none"
         onClick={handleBarClick}
       >
         {/* Progress fill */}
