@@ -42,7 +42,10 @@ export default function SpotifyPlayer({
     ?.accessToken as string | undefined;
 
   const playerRef = useRef<Spotify.Player | null>(null);
-  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const anchorPositionMs = useRef(0);
+  const anchorTimeMs = useRef(0);
+  const durationMsRef = useRef(0);
+  const rafIdRef = useRef<number | null>(null);
 
   const [deviceId, setDeviceId] = useState<string | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -82,10 +85,14 @@ export default function SpotifyPlayer({
 
       player.addListener("player_state_changed", (state) => {
         if (!state || cancelled) return;
-        setIsPlaying(!state.paused);
-        setPositionMs(state.position);
+        anchorPositionMs.current = state.position;
+        anchorTimeMs.current = Date.now();
+        durationMsRef.current = state.duration;
         setDurationMs(state.duration);
+        setPositionMs(state.position);
         onDuration?.(state.duration);
+        onTimeUpdate?.(state.position);
+        setIsPlaying(!state.paused);
       });
 
       await player.connect();
@@ -103,21 +110,31 @@ export default function SpotifyPlayer({
     };
   }, [accessToken]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Poll position while playing
+  // Advance position from anchor while playing (no polling)
   useEffect(() => {
-    if (isPlaying) {
-      intervalRef.current = setInterval(async () => {
-        const state = await playerRef.current?.getCurrentState();
-        if (state) {
-          setPositionMs(state.position);
-          onTimeUpdate?.(state.position);
-        }
-      }, 100);
-    } else {
-      if (intervalRef.current) clearInterval(intervalRef.current);
+    if (!isPlaying) {
+      if (rafIdRef.current != null) {
+        cancelAnimationFrame(rafIdRef.current);
+        rafIdRef.current = null;
+      }
+      return;
     }
+
+    function tick() {
+      const elapsed = Date.now() - anchorTimeMs.current;
+      const duration = durationMsRef.current;
+      const position = Math.min(duration, anchorPositionMs.current + elapsed);
+      setPositionMs(position);
+      onTimeUpdate?.(position);
+      rafIdRef.current = requestAnimationFrame(tick);
+    }
+
+    rafIdRef.current = requestAnimationFrame(tick);
     return () => {
-      if (intervalRef.current) clearInterval(intervalRef.current);
+      if (rafIdRef.current != null) {
+        cancelAnimationFrame(rafIdRef.current);
+        rafIdRef.current = null;
+      }
     };
   }, [isPlaying, onTimeUpdate]);
 
@@ -146,6 +163,8 @@ export default function SpotifyPlayer({
   const seek = useCallback(
     (ms: number) => {
       playerRef.current?.seek(ms);
+      anchorPositionMs.current = ms;
+      anchorTimeMs.current = Date.now();
       setPositionMs(ms);
       onTimeUpdate?.(ms);
     },
