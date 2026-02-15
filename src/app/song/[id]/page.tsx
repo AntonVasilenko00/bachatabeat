@@ -48,6 +48,8 @@ export default function SongPage() {
 
   // Seek ref so structure/counts can trigger seek from outside player
   const seekRef = useRef<((ms: number) => void) | null>(null);
+  // Only re-render for beat/count when the beat index actually changes (smoother, no 60fps flood)
+  const lastBeatRef = useRef<number>(-2);
 
   // Load song and breakdown
   useEffect(() => {
@@ -71,6 +73,11 @@ export default function SongPage() {
     load();
   }, [songId, router]);
 
+  // Reset beat ref when BPM/first beat changes so next position update commits
+  useEffect(() => {
+    lastBeatRef.current = -2;
+  }, [bpm, firstBeatMs]);
+
   // Save breakdown whenever data changes
   useEffect(() => {
     if (!song) return;
@@ -85,9 +92,16 @@ export default function SongPage() {
     saveBreakdown(bd);
   }, [bpm, firstBeatMs, countChanges, markers, song]);
 
-  const handleTimeUpdate = useCallback((ms: number) => {
-    setCurrentPositionMs(ms);
-  }, []);
+  const handleTimeUpdate = useCallback(
+    (ms: number) => {
+      const beat = msToBeat(ms, bpm, firstBeatMs);
+      if (beat !== lastBeatRef.current) {
+        lastBeatRef.current = beat;
+        setCurrentPositionMs(ms);
+      }
+    },
+    [bpm, firstBeatMs]
+  );
 
   const handleDuration = useCallback((ms: number) => {
     setPlayerDurationMs(ms);

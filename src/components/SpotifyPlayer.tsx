@@ -86,7 +86,7 @@ export default function SpotifyPlayer({
       player.addListener("player_state_changed", (state) => {
         if (!state || cancelled) return;
         anchorPositionMs.current = state.position;
-        anchorTimeMs.current = Date.now();
+        anchorTimeMs.current = performance.now();
         durationMsRef.current = state.duration;
         setDurationMs(state.duration);
         setPositionMs(state.position);
@@ -121,7 +121,7 @@ export default function SpotifyPlayer({
     }
 
     function tick() {
-      const elapsed = Date.now() - anchorTimeMs.current;
+      const elapsed = performance.now() - anchorTimeMs.current;
       const duration = durationMsRef.current;
       const position = Math.min(duration, anchorPositionMs.current + elapsed);
       setPositionMs(position);
@@ -164,7 +164,7 @@ export default function SpotifyPlayer({
     (ms: number) => {
       playerRef.current?.seek(ms);
       anchorPositionMs.current = ms;
-      anchorTimeMs.current = Date.now();
+      anchorTimeMs.current = performance.now();
       setPositionMs(ms);
       onTimeUpdate?.(ms);
     },
