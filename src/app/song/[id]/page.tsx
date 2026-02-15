@@ -6,7 +6,6 @@ import Image from "next/image";
 import { v4 as uuidv4 } from "uuid";
 import Header from "@/components/Header";
 import SpotifyPlayer from "@/components/SpotifyPlayer";
-import Timeline from "@/components/Timeline";
 import {
   getSongById,
   getBreakdown,
@@ -42,8 +41,6 @@ export default function SongPage() {
   const [playerDurationMs, setPlayerDurationMs] = useState(0);
 
   // UI state
-  const [showCountPicker, setShowCountPicker] = useState(false);
-  const [showSectionPicker, setShowSectionPicker] = useState(false);
   const [bpmInput, setBpmInput] = useState("");
   const [copySuccess, setCopySuccess] = useState(false);
 
@@ -117,11 +114,6 @@ export default function SongPage() {
     }
   }, []);
 
-  // Set first beat at current position
-  const handleSetFirstBeat = useCallback(() => {
-    setFirstBeatMs(currentPositionMs);
-  }, [currentPositionMs]);
-
   // Current beat info
   const durationMs = playerDurationMs || song?.durationMs || 0;
   const totalBeats = useMemo(
@@ -173,7 +165,6 @@ export default function SongPage() {
           [...prev, cc].sort((a, b) => a.beatIndex - b.beatIndex)
         );
       }
-      setShowCountPicker(false);
     },
     [currentPositionMs, bpm, firstBeatMs, countChanges]
   );
@@ -192,7 +183,6 @@ export default function SongPage() {
       setMarkers((prev) =>
         [...prev, marker].sort((a, b) => a.beatIndex - b.beatIndex)
       );
-      setShowSectionPicker(false);
     },
     [currentPositionMs, bpm, firstBeatMs]
   );
@@ -230,37 +220,6 @@ export default function SongPage() {
       router.push("/catalog");
     }
   };
-
-  // Close pickers on Escape
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        setShowCountPicker(false);
-        setShowSectionPicker(false);
-      }
-    };
-    window.addEventListener("keydown", handler);
-    return () => window.removeEventListener("keydown", handler);
-  }, []);
-
-  // Close pickers when clicking outside
-  useEffect(() => {
-    if (!showCountPicker && !showSectionPicker) return;
-    const handler = (e: MouseEvent) => {
-      const target = e.target as HTMLElement;
-      if (!target.closest("[data-picker]")) {
-        setShowCountPicker(false);
-        setShowSectionPicker(false);
-      }
-    };
-    const timer = setTimeout(() => {
-      document.addEventListener("click", handler);
-    }, 10);
-    return () => {
-      clearTimeout(timer);
-      document.removeEventListener("click", handler);
-    };
-  }, [showCountPicker, showSectionPicker]);
 
   if (!song) {
     return (
@@ -301,11 +260,20 @@ export default function SongPage() {
               {song.artist}
             </p>
             <div className="mt-1 flex items-center gap-2">
-              {bpm > 0 && (
-                <span className="rounded-full bg-blue-500/20 px-2 py-0.5 text-[10px] sm:text-xs font-medium text-blue-300">
-                  {Math.round(bpm)} bpm
+              <div className="flex items-center rounded-full bg-blue-500/20 overflow-hidden">
+                <input
+                  type="number"
+                  value={bpmInput}
+                  onChange={(e) => handleBpmChange(e.target.value)}
+                  placeholder="BPM"
+                  min={30}
+                  max={250}
+                  className="w-12 sm:w-14 bg-transparent px-2 py-0.5 text-[10px] sm:text-xs font-medium text-blue-300 placeholder-blue-300/60 outline-none text-center [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                />
+                <span className="pr-1.5 text-[10px] sm:text-xs font-medium text-blue-300/80">
+                  bpm
                 </span>
-              )}
+              </div>
               <span className="text-[10px] sm:text-xs text-zinc-500 font-mono">
                 {formatTime(durationMs)}
               </span>
@@ -526,41 +494,6 @@ export default function SongPage() {
               seekRef.current = controls.seek;
               return (
               <div className="space-y-3 sm:space-y-4">
-                {/* BPM config row */}
-                <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
-                  <div className="flex items-center rounded-lg border border-zinc-700 bg-zinc-800 overflow-hidden">
-                    <input
-                      type="number"
-                      value={bpmInput}
-                      onChange={(e) => handleBpmChange(e.target.value)}
-                      placeholder="BPM"
-                      min={30}
-                      max={250}
-                      className="w-14 sm:w-16 bg-transparent px-2 sm:px-2.5 py-1.5 text-sm text-white placeholder-zinc-500 outline-none text-center [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                    />
-                    <span className="pr-1.5 sm:pr-2 text-[10px] text-zinc-500">
-                      BPM
-                    </span>
-                  </div>
-
-                  <button
-                    onClick={handleSetFirstBeat}
-                    className={`rounded-lg border px-2.5 sm:px-3 py-1.5 text-xs transition-colors active:bg-zinc-600 ${
-                      firstBeatMs > 0
-                        ? "border-white/20 text-white bg-zinc-700"
-                        : "border-zinc-700 text-zinc-300 hover:bg-zinc-700 hover:text-white"
-                    }`}
-                  >
-                    Set 1
-                  </button>
-
-                  {firstBeatMs > 0 && (
-                    <span className="text-[10px] text-zinc-500 font-mono">
-                      @ {formatTime(firstBeatMs)}
-                    </span>
-                  )}
-                </div>
-
                 {/* Play controls */}
                 <div className="flex items-center justify-center gap-1 sm:gap-2">
                   {/* Restart (seek to 0:00) */}
@@ -658,92 +591,6 @@ export default function SongPage() {
                     </svg>
                   </button>
                 </div>
-
-                {/* Timeline */}
-                <Timeline
-                  durationMs={durationMs}
-                  positionMs={controls.positionMs}
-                  bpm={bpm}
-                  firstBeatMs={firstBeatMs}
-                  countChanges={countChanges}
-                  markers={markers}
-                  onSeek={controls.seek}
-                />
-
-                {/* Action buttons */}
-                {bpm > 0 && (
-                  <div className="flex items-center justify-center gap-1.5 sm:gap-2 flex-wrap">
-                    {/* Count change */}
-                    <div className="relative" data-picker>
-                      <button
-                        onClick={() => {
-                          setShowCountPicker(!showCountPicker);
-                          setShowSectionPicker(false);
-                        }}
-                        className="rounded-lg border border-zinc-700 px-2.5 sm:px-3 py-1.5 text-[11px] sm:text-xs text-zinc-300 hover:bg-zinc-700 hover:text-white transition-colors"
-                      >
-                        + Count
-                      </button>
-                      {showCountPicker && (
-                        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 flex gap-0.5 sm:gap-1 rounded-lg border border-zinc-700 bg-zinc-800 p-1 sm:p-1.5 shadow-xl z-50">
-                          {Array.from({ length: 8 }, (_, i) => i + 1).map(
-                            (num) => (
-                              <button
-                                key={num}
-                                onClick={() => addCountChange(num)}
-                                className="flex h-8 w-8 items-center justify-center rounded-md text-sm font-bold text-zinc-300 hover:bg-white hover:text-black transition-colors active:bg-zinc-200"
-                              >
-                                {num}
-                              </button>
-                            )
-                          )}
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Section */}
-                    <div className="relative" data-picker>
-                      <button
-                        onClick={() => {
-                          setShowSectionPicker(!showSectionPicker);
-                          setShowCountPicker(false);
-                        }}
-                        className="rounded-lg border border-zinc-700 px-2.5 sm:px-3 py-1.5 text-[11px] sm:text-xs text-zinc-300 hover:bg-zinc-700 hover:text-white transition-colors"
-                      >
-                        + Section
-                      </button>
-                      {showSectionPicker && (
-                        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 flex flex-wrap justify-center gap-1 rounded-lg border border-zinc-700 bg-zinc-800 p-1.5 shadow-xl z-50 min-w-[200px]">
-                          {SECTION_LABELS.map((label) => (
-                            <button
-                              key={label}
-                              onClick={() => addSection(label)}
-                              className="rounded-md px-2.5 py-1.5 text-xs text-zinc-300 hover:bg-emerald-500/20 hover:text-emerald-300 transition-colors capitalize active:bg-emerald-500/30"
-                            >
-                              {label}
-                            </button>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Break */}
-                    <button
-                      onClick={() => addMarkerQuick("break")}
-                      className="rounded-lg border border-zinc-700 px-2.5 sm:px-3 py-1.5 text-[11px] sm:text-xs text-zinc-300 hover:bg-zinc-700 hover:text-white transition-colors active:bg-zinc-600"
-                    >
-                      + Break
-                    </button>
-
-                    {/* Accent */}
-                    <button
-                      onClick={() => addMarkerQuick("accent")}
-                      className="rounded-lg border border-zinc-700 px-2.5 sm:px-3 py-1.5 text-[11px] sm:text-xs text-zinc-300 hover:bg-zinc-700 hover:text-white transition-colors active:bg-zinc-600"
-                    >
-                      + Accent
-                    </button>
-                  </div>
-                )}
               </div>
             );
             }}
