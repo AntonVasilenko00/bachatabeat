@@ -5,6 +5,8 @@ import { useSession, signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { v4 as uuidv4 } from "uuid";
 import Header from "@/components/Header";
+import SpotifyPlaylistPicker from "@/components/SpotifyPlaylistPicker";
+import type { PlaylistTrack } from "@/components/SpotifyPlaylistPicker";
 import { parseSpotifyTrackId } from "@/lib/spotify";
 import { saveSong } from "@/lib/storage";
 
@@ -14,6 +16,7 @@ export default function HomePage() {
   const [url, setUrl] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [showPlaylistPicker, setShowPlaylistPicker] = useState(false);
 
   const handleAddSong = async () => {
     setError("");
@@ -51,6 +54,20 @@ export default function HomePage() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleSelectTrackFromPlaylist = (track: PlaylistTrack) => {
+    const song = {
+      id: uuidv4(),
+      spotifyId: track.spotifyId,
+      title: track.title,
+      artist: track.artist,
+      albumArt: track.albumArt,
+      durationMs: track.durationMs,
+      addedAt: new Date().toISOString(),
+    };
+    saveSong(song);
+    router.push(`/song/${song.id}`);
   };
 
   return (
@@ -99,6 +116,29 @@ export default function HomePage() {
                   )}
                 </button>
               </div>
+
+              <div className="flex items-center gap-3">
+                <span className="flex-1 h-px bg-zinc-800" aria-hidden />
+                <span className="text-[10px] sm:text-xs text-zinc-600">or</span>
+                <span className="flex-1 h-px bg-zinc-800" aria-hidden />
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setShowPlaylistPicker(true)}
+                className="w-full flex items-center justify-center gap-2 rounded-xl border border-zinc-700 bg-zinc-900 px-4 py-3 text-sm text-zinc-300 hover:bg-zinc-800 hover:text-white hover:border-zinc-600 transition-colors"
+              >
+                <svg className="w-5 h-5 text-[#1DB954]" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02z" />
+                </svg>
+                Choose from my playlists
+              </button>
+
+              <SpotifyPlaylistPicker
+                isOpen={showPlaylistPicker}
+                onClose={() => setShowPlaylistPicker(false)}
+                onSelectTrack={handleSelectTrackFromPlaylist}
+              />
 
               {error && (
                 <p className="text-sm text-red-400">{error}</p>

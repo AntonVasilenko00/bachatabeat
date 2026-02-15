@@ -7,6 +7,8 @@ const SPOTIFY_SCOPES = [
   "streaming",
   "user-read-playback-state",
   "user-modify-playback-state",
+  "playlist-read-private",
+  "playlist-read-collaborative",
 ].join(" ");
 
 export const authOptions: NextAuthOptions = {
