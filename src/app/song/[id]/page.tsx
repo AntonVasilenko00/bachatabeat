@@ -46,6 +46,9 @@ export default function SongPage() {
   const [bpmInput, setBpmInput] = useState("");
   const [copySuccess, setCopySuccess] = useState(false);
 
+  // Seek ref so structure/counts can trigger seek from outside player
+  const seekRef = useRef<((ms: number) => void) | null>(null);
+
   // Load song and breakdown
   useEffect(() => {
     async function load() {
@@ -328,18 +331,32 @@ export default function SongPage() {
                   <div className="flex h-8 sm:h-10 gap-0.5 w-full min-w-0">
                     {structureSegments.map((seg, i) => {
                       const beatSpan = Math.max(1, seg.endBeat - seg.startBeat);
+                      const isCurrent =
+                        bpm > 0 &&
+                        currentBeat >= seg.startBeat &&
+                        currentBeat < seg.endBeat;
                       const color = seg.label && SECTION_LABEL_COLORS[seg.label.toLowerCase()]
                         ? SECTION_LABEL_COLORS[seg.label.toLowerCase()]
                         : "rgb(63 63 70)"; // zinc-700
+                      const canSeek = bpm > 0 && firstBeatMs >= 0;
                       return (
-                        <div
+                        <button
+                          type="button"
                           key={`${seg.startBeat}-${seg.endBeat}-${i}`}
-                          className="rounded-md min-w-[6px]"
+                          className={`rounded-md min-w-[6px] transition-all ${
+                            canSeek ? "cursor-pointer hover:opacity-90" : "cursor-default"
+                          } ${isCurrent ? "ring-2 ring-white/80 ring-offset-1 ring-offset-zinc-900 shadow-lg" : ""}`}
                           style={{
                             flex: `${beatSpan} 1 0`,
                             backgroundColor: color,
                           }}
                           title={seg.label ? `${seg.label} (beats ${seg.startBeat}–${seg.endBeat})` : `Eight ${Math.floor(seg.startBeat / 8) + 1}`}
+                          disabled={!canSeek}
+                          onClick={() => {
+                            if (canSeek && seekRef.current) {
+                              seekRef.current(beatToMs(seg.startBeat, bpm, firstBeatMs));
+                            }
+                          }}
                         />
                       );
                     })}
@@ -384,31 +401,56 @@ export default function SongPage() {
             </h2>
             <div className="flex flex-wrap justify-center gap-4 sm:gap-6">
               <div className="flex items-center gap-1 rounded-full border border-zinc-700 bg-zinc-800/50 px-2 py-1.5">
-                {[1, 2].map((n) => (
-                  <div
-                    key={n}
-                    className={`h-5 w-5 sm:h-6 sm:w-6 rounded-full border-2 flex items-center justify-center text-[10px] font-bold ${
-                      currentCount > 0 && ((currentCount - 1) >> 1) + 1 === n
-                        ? "border-emerald-400 bg-emerald-500/30 text-emerald-300"
-                        : "border-zinc-600 bg-transparent text-zinc-500"
-                    }`}
-                  >
-                    {n}
-                  </div>
-                ))}
+                {[1, 2].map((n) => {
+                  const active = currentCount > 0 && ((currentCount - 1) >> 1) + 1 === n;
+                  const canSeek = bpm > 0 && firstBeatMs >= 0;
+                  const baseEight = currentBeat < 0 ? 0 : Math.floor(currentBeat / 8) * 8;
+                  const targetBeat = baseEight + (n - 1) * 4;
+                  return (
+                    <button
+                      type="button"
+                      key={n}
+                      className={`h-5 w-5 sm:h-6 sm:w-6 rounded-full border-2 flex items-center justify-center text-[10px] font-bold transition-colors ${
+                        canSeek ? "cursor-pointer hover:opacity-90" : "cursor-default"
+                      } ${
+                        active ? "border-emerald-400 bg-emerald-500/30 text-emerald-300" : "border-zinc-600 bg-transparent text-zinc-500"
+                      }`}
+                      disabled={!canSeek}
+                      onClick={() => {
+                        if (canSeek && seekRef.current) {
+                          seekRef.current(beatToMs(targetBeat, bpm, firstBeatMs));
+                        }
+                      }}
+                    >
+                      {n}
+                    </button>
+                  );
+                })}
               </div>
               <div className="flex items-center gap-1 rounded-full border border-zinc-700 bg-zinc-800/50 px-2 py-1.5">
                 {[1, 2, 3, 4].map((n) => {
                   const active = currentCount > 0 && ((currentCount - 1) >> 2) + 1 === n;
+                  const canSeek = bpm > 0 && firstBeatMs >= 0;
+                  const baseEight = currentBeat < 0 ? 0 : Math.floor(currentBeat / 8) * 8;
+                  const targetBeat = baseEight + (n - 1) * 2;
                   return (
-                    <div
+                    <button
+                      type="button"
                       key={n}
-                      className={`h-5 w-5 sm:h-6 sm:w-6 rounded-full border-2 flex items-center justify-center text-[10px] font-bold ${
+                      className={`h-5 w-5 sm:h-6 sm:w-6 rounded-full border-2 flex items-center justify-center text-[10px] font-bold transition-colors ${
+                        canSeek ? "cursor-pointer hover:opacity-90" : "cursor-default"
+                      } ${
                         active ? "border-emerald-400 bg-emerald-500/30 text-emerald-300" : "border-zinc-600 bg-transparent text-zinc-500"
                       }`}
+                      disabled={!canSeek}
+                      onClick={() => {
+                        if (canSeek && seekRef.current) {
+                          seekRef.current(beatToMs(targetBeat, bpm, firstBeatMs));
+                        }
+                      }}
                     >
                       {n}
-                    </div>
+                    </button>
                   );
                 })}
               </div>
@@ -422,18 +464,32 @@ export default function SongPage() {
             </h2>
             <div className="flex justify-center">
               <div className="inline-flex items-center gap-1 rounded-full border border-zinc-700 bg-zinc-800/50 px-2 py-2">
-                {Array.from({ length: 8 }, (_, i) => i + 1).map((num) => (
-                  <div
-                    key={num}
-                    className={`flex h-8 w-8 sm:h-9 sm:w-9 items-center justify-center rounded-full text-sm sm:text-base font-bold transition-all ${
-                      currentCount === num
-                        ? "bg-emerald-500 text-white shadow-lg shadow-emerald-500/30 scale-110"
-                        : "border-2 border-zinc-600 bg-zinc-800/80 text-zinc-500"
-                    }`}
-                  >
-                    {num}
-                  </div>
-                ))}
+                {Array.from({ length: 8 }, (_, i) => i + 1).map((num) => {
+                  const canSeek = bpm > 0 && firstBeatMs >= 0;
+                  const baseEight = currentBeat < 0 ? 0 : Math.floor(currentBeat / 8) * 8;
+                  const targetBeat = baseEight + (num - 1);
+                  return (
+                    <button
+                      type="button"
+                      key={num}
+                      className={`flex h-8 w-8 sm:h-9 sm:w-9 items-center justify-center rounded-full text-sm sm:text-base font-bold transition-all ${
+                        canSeek ? "cursor-pointer hover:opacity-90" : "cursor-default"
+                      } ${
+                        currentCount === num
+                          ? "bg-emerald-500 text-white shadow-lg shadow-emerald-500/30 scale-110"
+                          : "border-2 border-zinc-600 bg-zinc-800/80 text-zinc-500"
+                      }`}
+                      disabled={!canSeek}
+                      onClick={() => {
+                        if (canSeek && seekRef.current) {
+                          seekRef.current(beatToMs(targetBeat, bpm, firstBeatMs));
+                        }
+                      }}
+                    >
+                      {num}
+                    </button>
+                  );
+                })}
               </div>
             </div>
             {bpm <= 0 && (
@@ -451,7 +507,9 @@ export default function SongPage() {
             onTimeUpdate={handleTimeUpdate}
             onDuration={handleDuration}
           >
-            {(controls) => (
+            {(controls) => {
+              seekRef.current = controls.seek;
+              return (
               <div className="space-y-3 sm:space-y-4">
                 {/* BPM config row */}
                 <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
@@ -487,24 +545,6 @@ export default function SongPage() {
                     </span>
                   )}
                 </div>
-
-                {/* Count display - always own row */}
-                {bpm > 0 && currentBeat >= 0 && (
-                  <div className="flex items-center justify-center gap-1 sm:gap-1.5">
-                    {Array.from({ length: 8 }, (_, i) => i + 1).map((num) => (
-                      <div
-                        key={num}
-                        className={`flex h-8 w-8 sm:h-9 sm:w-9 items-center justify-center rounded-lg text-sm sm:text-base font-bold transition-all ${
-                          currentCount === num
-                            ? "bg-white text-black scale-110 shadow-lg shadow-white/20"
-                            : "bg-zinc-800 text-zinc-600"
-                        }`}
-                      >
-                        {num}
-                      </div>
-                    ))}
-                  </div>
-                )}
 
                 {/* Play controls */}
                 <div className="flex items-center justify-center gap-1 sm:gap-2">
@@ -690,7 +730,8 @@ export default function SongPage() {
                   </div>
                 )}
               </div>
-            )}
+            );
+            }}
           </SpotifyPlayer>
         </div>
 
