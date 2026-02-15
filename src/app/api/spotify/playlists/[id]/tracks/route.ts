@@ -45,17 +45,28 @@ export async function GET(
 
     const data = await res.json();
 
+    type SpotifyTrack = {
+      id: string;
+      name: string;
+      artists: Array<{ name: string }>;
+      album: { images?: Array<{ url: string }> };
+      duration_ms: number;
+      uri: string;
+    };
+
+    function isSpotifyTrack(t: unknown): t is SpotifyTrack {
+      return (
+        t != null &&
+        typeof t === "object" &&
+        "id" in t &&
+        typeof (t as SpotifyTrack).id === "string"
+      );
+    }
+
     const tracks = (data.items as Array<{ track: unknown }>)
       .map((item) => item.track)
-      .filter((t): t is NonNullable<typeof t> => t != null && typeof t === "object" && "id" in t)
-      .map((track: {
-        id: string;
-        name: string;
-        artists: Array<{ name: string }>;
-        album: { images?: Array<{ url: string }> };
-        duration_ms: number;
-        uri: string;
-      }) => ({
+      .filter(isSpotifyTrack)
+      .map((track) => ({
         spotifyId: track.id,
         title: track.name,
         artist: track.artists?.map((a) => a.name).join(", ") ?? "",
