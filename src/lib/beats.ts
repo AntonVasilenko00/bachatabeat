@@ -90,3 +90,46 @@ export function generateCounts(
   }
   return counts;
 }
+
+/** Segment for song structure: either from section markers or 8-beat blocks */
+export interface StructureSegment {
+  startBeat: number;
+  endBeat: number;
+  label?: string;
+}
+
+/**
+ * Build song structure segments. If there are section markers, one segment per
+ * section; otherwise one segment per 8 beats (breakdown by eights).
+ */
+export function getStructureSegments(
+  totalBeats: number,
+  sectionMarkers: { beatIndex: number; label?: string }[]
+): StructureSegment[] {
+  const sorted = [...sectionMarkers].filter((m) => m.beatIndex < totalBeats).sort((a, b) => a.beatIndex - b.beatIndex);
+
+  if (sorted.length === 0) {
+    const segments: StructureSegment[] = [];
+    for (let start = 0; start < totalBeats; start += 8) {
+      segments.push({
+        startBeat: start,
+        endBeat: Math.min(start + 8, totalBeats),
+      });
+    }
+    return segments;
+  }
+
+  const segments: StructureSegment[] = [];
+  for (let i = 0; i < sorted.length; i++) {
+    const startBeat = sorted[i].beatIndex;
+    const endBeat = i + 1 < sorted.length ? sorted[i + 1].beatIndex : totalBeats;
+    if (endBeat > startBeat) {
+      segments.push({
+        startBeat,
+        endBeat,
+        label: sorted[i].label,
+      });
+    }
+  }
+  return segments;
+}

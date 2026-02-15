@@ -21,9 +21,11 @@ import {
   getCountForBeat,
   beatToMs,
   msToBeat,
+  getTotalBeats,
+  getStructureSegments,
 } from "@/lib/beats";
 import type { Song, Marker, Breakdown, CountChange, MarkerType } from "@/types";
-import { MARKER_CONFIG, SECTION_LABELS } from "@/types";
+import { MARKER_CONFIG, SECTION_LABELS, SECTION_LABEL_COLORS } from "@/types";
 
 export default function SongPage() {
   const params = useParams();
@@ -104,6 +106,22 @@ export default function SongPage() {
 
   // Current beat info
   const durationMs = playerDurationMs || song?.durationMs || 0;
+  const totalBeats = useMemo(
+    () => getTotalBeats(durationMs, bpm, firstBeatMs),
+    [durationMs, bpm, firstBeatMs]
+  );
+  const sectionMarkers = useMemo(
+    () => markers.filter((m) => m.type === "section"),
+    [markers]
+  );
+  const structureSegments = useMemo(
+    () =>
+      getStructureSegments(
+        totalBeats,
+        sectionMarkers.map((m) => ({ beatIndex: m.beatIndex, label: m.label }))
+      ),
+    [totalBeats, sectionMarkers]
+  );
   const currentBeat = useMemo(() => {
     if (bpm <= 0 || currentPositionMs < firstBeatMs) return -1;
     return msToBeat(currentPositionMs, bpm, firstBeatMs);
@@ -264,6 +282,16 @@ export default function SongPage() {
             <p className="text-xs sm:text-sm text-zinc-400 truncate">
               {song.artist}
             </p>
+            <div className="mt-1 flex items-center gap-2">
+              {bpm > 0 && (
+                <span className="rounded-full bg-blue-500/20 px-2 py-0.5 text-[10px] sm:text-xs font-medium text-blue-300">
+                  {Math.round(bpm)} bpm
+                </span>
+              )}
+              <span className="text-[10px] sm:text-xs text-zinc-500 font-mono">
+                {formatTime(durationMs)}
+              </span>
+            </div>
           </div>
           <div className="flex shrink-0 gap-1.5 sm:gap-2">
             <button
@@ -284,6 +312,135 @@ export default function SongPage() {
             >
               Delete
             </button>
+          </div>
+        </div>
+
+        {/* Structure card: SONG STRUCTURE, RHYTHM, PHRASING, BEATS / COUNTS */}
+        <div className="mb-4 sm:mb-6 rounded-2xl border border-zinc-800 bg-zinc-900/50 p-3 sm:p-5 space-y-5 sm:space-y-6">
+          {/* SONG STRUCTURE */}
+          <div className="space-y-2">
+            <h2 className="text-center text-[10px] sm:text-xs font-medium uppercase tracking-wider text-zinc-500">
+              Song structure
+            </h2>
+            {totalBeats > 0 ? (
+              <>
+                <div className="w-full overflow-x-auto overflow-y-hidden pb-1">
+                  <div className="flex h-8 sm:h-10 gap-0.5 w-full min-w-0">
+                    {structureSegments.map((seg, i) => {
+                      const beatSpan = Math.max(1, seg.endBeat - seg.startBeat);
+                      const color = seg.label && SECTION_LABEL_COLORS[seg.label.toLowerCase()]
+                        ? SECTION_LABEL_COLORS[seg.label.toLowerCase()]
+                        : "rgb(63 63 70)"; // zinc-700
+                      return (
+                        <div
+                          key={`${seg.startBeat}-${seg.endBeat}-${i}`}
+                          className="rounded-md min-w-[6px]"
+                          style={{
+                            flex: `${beatSpan} 1 0`,
+                            backgroundColor: color,
+                          }}
+                          title={seg.label ? `${seg.label} (beats ${seg.startBeat}–${seg.endBeat})` : `Eight ${Math.floor(seg.startBeat / 8) + 1}`}
+                        />
+                      );
+                    })}
+                  </div>
+                </div>
+                <div className="flex flex-wrap justify-center gap-1.5">
+                  {SECTION_LABELS.map((label) => {
+                    const color = SECTION_LABEL_COLORS[label] ?? "rgb(113 113 122)";
+                    return (
+                      <span
+                        key={label}
+                        className="rounded-full px-2.5 py-1 text-[10px] sm:text-xs font-medium capitalize"
+                        style={{ backgroundColor: `${color}30`, color }}
+                      >
+                        {label.replace("-", " ")}
+                      </span>
+                    );
+                  })}
+                </div>
+              </>
+            ) : (
+              <p className="text-center text-xs text-zinc-500 py-2">
+                Set BPM and first beat to see structure (breakdown by 8-count)
+              </p>
+            )}
+          </div>
+
+          {/* RHYTHM / FRAMEWORK */}
+          <div className="space-y-1">
+            <h2 className="text-center text-[10px] sm:text-xs font-medium uppercase tracking-wider text-zinc-500">
+              Rhythm / framework
+            </h2>
+            <p className="text-center text-lg sm:text-xl font-bold text-zinc-300">
+              {bpm > 0 ? "Derecho" : "—"}
+            </p>
+          </div>
+
+          {/* SECTION PHRASING (2 and 4 count) */}
+          <div className="space-y-2">
+            <h2 className="text-center text-[10px] sm:text-xs font-medium uppercase tracking-wider text-zinc-500">
+              Section phrasing
+            </h2>
+            <div className="flex flex-wrap justify-center gap-4 sm:gap-6">
+              <div className="flex items-center gap-1 rounded-full border border-zinc-700 bg-zinc-800/50 px-2 py-1.5">
+                {[1, 2].map((n) => (
+                  <div
+                    key={n}
+                    className={`h-5 w-5 sm:h-6 sm:w-6 rounded-full border-2 flex items-center justify-center text-[10px] font-bold ${
+                      currentCount > 0 && ((currentCount - 1) >> 1) + 1 === n
+                        ? "border-emerald-400 bg-emerald-500/30 text-emerald-300"
+                        : "border-zinc-600 bg-transparent text-zinc-500"
+                    }`}
+                  >
+                    {n}
+                  </div>
+                ))}
+              </div>
+              <div className="flex items-center gap-1 rounded-full border border-zinc-700 bg-zinc-800/50 px-2 py-1.5">
+                {[1, 2, 3, 4].map((n) => {
+                  const active = currentCount > 0 && ((currentCount - 1) >> 2) + 1 === n;
+                  return (
+                    <div
+                      key={n}
+                      className={`h-5 w-5 sm:h-6 sm:w-6 rounded-full border-2 flex items-center justify-center text-[10px] font-bold ${
+                        active ? "border-emerald-400 bg-emerald-500/30 text-emerald-300" : "border-zinc-600 bg-transparent text-zinc-500"
+                      }`}
+                    >
+                      {n}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+
+          {/* BEATS / COUNTS — always show 8-count breakdown */}
+          <div className="space-y-2">
+            <h2 className="text-center text-[10px] sm:text-xs font-medium uppercase tracking-wider text-zinc-500">
+              Beats / counts
+            </h2>
+            <div className="flex justify-center">
+              <div className="inline-flex items-center gap-1 rounded-full border border-zinc-700 bg-zinc-800/50 px-2 py-2">
+                {Array.from({ length: 8 }, (_, i) => i + 1).map((num) => (
+                  <div
+                    key={num}
+                    className={`flex h-8 w-8 sm:h-9 sm:w-9 items-center justify-center rounded-full text-sm sm:text-base font-bold transition-all ${
+                      currentCount === num
+                        ? "bg-emerald-500 text-white shadow-lg shadow-emerald-500/30 scale-110"
+                        : "border-2 border-zinc-600 bg-zinc-800/80 text-zinc-500"
+                    }`}
+                  >
+                    {num}
+                  </div>
+                ))}
+              </div>
+            </div>
+            {bpm <= 0 && (
+              <p className="text-center text-[10px] text-zinc-500">
+                Set BPM and first beat to sync counts
+              </p>
+            )}
           </div>
         </div>
 
