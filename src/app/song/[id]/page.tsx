@@ -326,7 +326,7 @@ export default function SongPage() {
                         <button
                           type="button"
                           key={`${seg.startBeat}-${seg.endBeat}-${i}`}
-                          className={`rounded-md min-w-[6px] transition-all ${
+                          className={`rounded-md min-w-[6px] ${
                             canSeek ? "cursor-pointer hover:opacity-90" : "cursor-default"
                           } ${isCurrent ? "ring-2 ring-white/80 ring-offset-1 ring-offset-zinc-900 shadow-lg" : ""}`}
                           style={{
@@ -393,7 +393,7 @@ export default function SongPage() {
                     <button
                       type="button"
                       key={n}
-                      className={`h-5 w-5 sm:h-6 sm:w-6 rounded-full border-2 flex items-center justify-center text-[10px] font-bold transition-colors ${
+                      className={`h-5 w-5 sm:h-6 sm:w-6 rounded-full border-2 flex items-center justify-center text-[10px] font-bold ${
                         canSeek ? "cursor-pointer hover:opacity-90" : "cursor-default"
                       } ${
                         active ? "border-emerald-400 bg-emerald-500/30 text-emerald-300" : "border-zinc-600 bg-transparent text-zinc-500"
@@ -420,7 +420,7 @@ export default function SongPage() {
                     <button
                       type="button"
                       key={n}
-                      className={`h-5 w-5 sm:h-6 sm:w-6 rounded-full border-2 flex items-center justify-center text-[10px] font-bold transition-colors ${
+                      className={`h-5 w-5 sm:h-6 sm:w-6 rounded-full border-2 flex items-center justify-center text-[10px] font-bold ${
                         canSeek ? "cursor-pointer hover:opacity-90" : "cursor-default"
                       } ${
                         active ? "border-emerald-400 bg-emerald-500/30 text-emerald-300" : "border-zinc-600 bg-transparent text-zinc-500"
@@ -455,7 +455,7 @@ export default function SongPage() {
                     <button
                       type="button"
                       key={num}
-                      className={`flex h-8 w-8 sm:h-9 sm:w-9 items-center justify-center rounded-full text-sm sm:text-base font-bold transition-all ${
+                      className={`flex h-8 w-8 sm:h-9 sm:w-9 items-center justify-center rounded-full text-sm sm:text-base font-bold ${
                         canSeek ? "cursor-pointer hover:opacity-90" : "cursor-default"
                       } ${
                         currentCount === num
