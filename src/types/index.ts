@@ -64,14 +64,3 @@ export const SECTION_LABELS = [
   "bridge",
   "outro",
 ] as const;
-
-/** Colors for song structure blocks (by section label) */
-export const SECTION_LABEL_COLORS: Record<string, string> = {
-  intro: "#7DD3FC",      // light blue
-  verse: "#FB923C",      // orange
-  "pre-chorus": "#F472B6", // pink
-  chorus: "#86EFAC",     // light green
-  mambo: "#3B82F6",      // dark blue
-  bridge: "#C084FC",     // purple/magenta
-  outro: "#94A3B8",      // slate
-};

@@ -25,7 +25,8 @@ import {
   getStructureSegments,
 } from "@/lib/beats";
 import type { Song, Marker, Breakdown, CountChange, MarkerType } from "@/types";
-import { MARKER_CONFIG, SECTION_LABELS, SECTION_LABEL_COLORS } from "@/types";
+import { MARKER_CONFIG, SECTION_LABELS } from "@/types";
+import { SECTION_LABEL_COLORS } from "@/lib/sectionColors";
 
 export default function SongPage() {
   const params = useParams();
