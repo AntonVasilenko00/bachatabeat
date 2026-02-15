@@ -43,6 +43,8 @@ export default function SongPage() {
   // UI state
   const [bpmInput, setBpmInput] = useState("");
   const [copySuccess, setCopySuccess] = useState(false);
+  /** Indices into structureSegments that are selected (multi-select via Ctrl/Cmd+click or section badge). */
+  const [selectedSegmentIndices, setSelectedSegmentIndices] = useState<number[]>([]);
 
   // Seek ref so structure/counts can trigger seek from outside player
   const seekRef = useRef<((ms: number) => void) | null>(null);
@@ -318,25 +320,37 @@ export default function SongPage() {
                         bpm > 0 &&
                         currentBeat >= seg.startBeat &&
                         currentBeat < seg.endBeat;
+                      const isSelected = selectedSegmentIndices.includes(i);
                       const color = seg.label && SECTION_LABEL_COLORS[seg.label.toLowerCase()]
                         ? SECTION_LABEL_COLORS[seg.label.toLowerCase()]
                         : "rgb(63 63 70)"; // zinc-700
                       const canSeek = bpm > 0 && firstBeatMs >= 0;
+                      const title = seg.label
+                        ? `${seg.label} (beats ${seg.startBeat}–${seg.endBeat}). Click to seek; Ctrl/Cmd+click to select.`
+                        : `Eight ${Math.floor(seg.startBeat / 8) + 1}. Click to seek; Ctrl/Cmd+click to select.`;
                       return (
                         <button
                           type="button"
                           key={`${seg.startBeat}-${seg.endBeat}-${i}`}
                           className={`rounded-md min-w-[6px] ${
                             canSeek ? "cursor-pointer hover:opacity-90" : "cursor-default"
-                          } ${isCurrent ? "ring-2 ring-white/80 ring-offset-1 ring-offset-zinc-900 shadow-lg" : ""}`}
+                          } ${isCurrent ? "ring-2 ring-white/80 ring-offset-1 ring-offset-zinc-900 shadow-lg" : ""} ${
+                            isSelected ? "ring-2 ring-amber-400 ring-offset-1 ring-offset-zinc-900 opacity-100" : ""
+                          }`}
                           style={{
                             flex: `${beatSpan} 1 0`,
                             backgroundColor: color,
                           }}
-                          title={seg.label ? `${seg.label} (beats ${seg.startBeat}–${seg.endBeat})` : `Eight ${Math.floor(seg.startBeat / 8) + 1}`}
+                          title={title}
                           disabled={!canSeek}
-                          onClick={() => {
-                            if (canSeek && seekRef.current) {
+                          onClick={(e) => {
+                            if (e.metaKey || e.ctrlKey) {
+                              setSelectedSegmentIndices((prev) =>
+                                prev.includes(i)
+                                  ? prev.filter((j) => j !== i)
+                                  : [...prev, i]
+                              );
+                            } else if (canSeek && seekRef.current) {
                               seekRef.current(beatToMs(seg.startBeat, bpm, firstBeatMs));
                             }
                           }}
@@ -348,14 +362,27 @@ export default function SongPage() {
                 <div className="flex flex-wrap justify-center gap-1.5">
                   {SECTION_LABELS.map((label) => {
                     const color = SECTION_LABEL_COLORS[label] ?? "rgb(113 113 122)";
+                    const segmentIndicesWithLabel = structureSegments
+                      .map((seg, idx) => (seg.label?.toLowerCase() === label ? idx : -1))
+                      .filter((idx) => idx >= 0);
+                    const isActive =
+                      segmentIndicesWithLabel.length > 0 &&
+                      segmentIndicesWithLabel.every((idx) => selectedSegmentIndices.includes(idx));
                     return (
-                      <span
+                      <button
+                        type="button"
                         key={label}
-                        className="rounded-full px-2.5 py-1 text-[10px] sm:text-xs font-medium capitalize"
+                        className={`rounded-full px-2.5 py-1 text-[10px] sm:text-xs font-medium capitalize transition-colors ${
+                          isActive ? "ring-2 ring-amber-400 ring-offset-1 ring-offset-zinc-900" : "hover:opacity-90"
+                        }`}
                         style={{ backgroundColor: `${color}30`, color }}
+                        title={`Select all "${label.replace("-", " ")}" segments`}
+                        onClick={() => {
+                          setSelectedSegmentIndices(segmentIndicesWithLabel);
+                        }}
                       >
                         {label.replace("-", " ")}
-                      </span>
+                      </button>
                     );
                   })}
                 </div>
